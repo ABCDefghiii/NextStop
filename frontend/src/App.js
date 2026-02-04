@@ -3,6 +3,7 @@ import "./App.css";
 
 function App() {
   const [eta, setEta] = useState(5);
+  const [showChat, setShowChat] = useState(false);
 
   const handleTrack = () => {
     if (eta > 1) {
@@ -24,7 +25,16 @@ function App() {
 
       <div className="chatbot">
         <h3>💬 Navis AI Assistant</h3>
-        <button className="chat-btn">Ask about delays</button>
+        <button className="chat-btn" onClick={() => setShowChat(!showChat)}>
+          Ask about delays
+        </button>
+
+        {showChat && (
+          <div className="chatbox">
+            <p><strong>You:</strong> When is the next bus?</p>
+            <p><strong>Navis AI:</strong> Bus arriving in {eta} {eta !== "Arriving" ? "mins" : ""}</p>
+          </div>
+        )}
       </div>
     </div>
   );

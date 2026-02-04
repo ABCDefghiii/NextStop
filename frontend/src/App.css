@@ -56,3 +56,13 @@ body {
 .chat-btn:hover {
   background: #2e7d32;
 }
+
+.chatbox {
+  background: white;
+  width: 300px;
+  margin: 15px auto;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
