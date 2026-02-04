@@ -1,3 +1,4 @@
+import BusCard from "./components/BusCard";
 import React, { useState } from "react";
 import "./App.css";
 
@@ -17,11 +18,8 @@ function App() {
     <div className="app">
       <h1 className="title">🚌 NextStop</h1>
 
-      <div className="card">
-        <h2>Route 22B – City Center</h2>
-        <p className="eta">Next Bus Arrival: {eta} {eta !== "Arriving" ? "mins" : ""}</p>
-        <button className="track-btn" onClick={handleTrack}>Track Bus</button>
-      </div>
+      <BusCard eta={eta} handleTrack={handleTrack} />
+
 
       <div className="chatbot">
         <h3>💬 Navis AI Assistant</h3>
@@ -32,7 +30,13 @@ function App() {
         {showChat && (
           <div className="chatbox">
             <p><strong>You:</strong> When is the next bus?</p>
-            <p><strong>Navis AI:</strong> Bus arriving in {eta} {eta !== "Arriving" ? "mins" : ""}</p>
+            <p>
+              <strong>Navis AI:</strong>{" "}
+              {eta === "Arriving"
+                ? "Your bus is arriving now!"
+                : `Bus arriving in ${eta} mins.`}
+            </p>
+
           </div>
         )}
       </div>
