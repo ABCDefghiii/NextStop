@@ -1,18 +1,23 @@
 import React from "react";
 
-function BusCard({ eta, handleTrack }) {
+function BusCard({ route, eta, traffic }) {
+    const getTrafficColor = () => {
+        if (traffic === "High") return "red";
+        if (traffic === "Medium") return "orange";
+        return "green";
+    };
+
     return (
         <div className="card">
-            <h2>Route 22B – City Center</h2>
-            <p className={`eta ${eta === "Arriving" ? "arriving" : ""}`}>
-                {eta === "Arriving"
-                    ? "🚌 Bus Arriving..."
-                    : `Next Bus Arrival: ${eta} mins`}
+            <h2>{route}</h2>
+
+            <p className="eta">
+                Next Bus Arrival: {eta} mins
             </p>
 
-            <button className="track-btn" onClick={handleTrack}>
-                Track Bus
-            </button>
+            <div className="traffic-badge" style={{ backgroundColor: getTrafficColor() }}>
+                Traffic: {traffic}
+            </div>
         </div>
     );
 }
