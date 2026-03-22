@@ -1,414 +1,510 @@
+/* ===== GLOBAL ===== */
 body {
   margin: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: #f4f6f8;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc);
 }
 
-/* Main Container */
 .app {
-  max-width: 950px;
-  margin: 0 auto;
   padding: 20px;
 }
 
-/* Title */
+/* ===== TITLE ===== */
 .title {
   text-align: center;
-  color: #1e88e5;
-  margin-bottom: 20px;
+  color: #1e3a8a;
+  margin-bottom: 25px;
+  font-size: 28px;
+  font-weight: 700;
 }
 
-/* Dropdown */
-select {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+h3 {
   font-size: 16px;
-  margin-bottom: 20px;
-  background: white;
+  font-weight: 600;
+  color: #374151;
 }
 
-/* Card */
+p {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+/* ===== CARD ===== */
 .card {
   background: white;
-  padding: 20px;
-  margin-top: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.card h2 {
-  margin: 0;
-  color: #111827;
-}
-
-/* ETA */
-.eta {
-  font-size: 18px;
-  margin: 10px 0;
-  font-weight: 600;
-  color: #2563eb;
-}
-
-/* Track Button */
-.track-btn {
-  background: #1e88e5;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.track-btn:hover {
-  background: #1565c0;
-}
-
-/* Chat Section */
-.chatbot {
-  margin-top: 30px;
-  background: white;
   padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
 }
 
-.chat-btn {
-  background: #43a047;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
+.card:hover {
+  transform: translateY(-5px) scale(1.01);
 }
 
-.chat-btn:hover {
-  background: #2e7d32;
-}
-
-.chatbox {
-  background: #f9fafb;
-  width: 100%;
-  margin: 15px 0;
-  padding: 15px;
+/* ===== FORM ELEMENTS ===== */
+select,
+input {
+  padding: 10px;
   border-radius: 10px;
-  text-align: left;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+select:focus,
+input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
+}
+
+/* ===== HEADER / TRIP PLANNER ===== */
+.header-card {
+  display: flex;
+  gap: 10px;
+}
+
+.trip-planner {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ===== FLEET BOX ===== */
+.fleet-box {
+  background: #eef2ff;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+/* ===== HEALTH STRIP ===== */
+.health-bar {
+  display: flex;
+  justify-content: space-between;
+  background: #e0f2fe;
+  padding: 10px 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.dot {
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.green {
+  background: #22c55e;
+}
+
+.orange {
+  background: #f59e0b;
+}
+
+/* ===== MAP ===== */
+.map-container {
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-card {
+  position: relative;
+  height: 420px;
+}
+
+.map-card .leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* ===== ETA FLOAT ===== */
+.eta-overlay {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: white;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.8);
+  }
+
+  100% {
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* ===== STATUS ROW ===== */
+.status-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+/* ===== INSIGHTS GRID ===== */
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+}
+
+.insights-grid .card {
+  border-left: 5px solid #2563eb;
+  transition: 0.3s;
+}
+
+.insights-grid .card:hover {
+  transform: scale(1.02);
+}
+
+/* ===== CHATBOT ===== */
+.chatbot {
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-window {
-  max-height: 250px;
+  height: 200px;
   overflow-y: auto;
-  background: #f9fafb;
   padding: 10px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  background: #f9fafb;
 }
 
 .chat-bubble {
-  padding: 8px 12px;
-  border-radius: 16px;
-  margin: 6px 0;
-  max-width: 75%;
+  font-size: 14px;
+}
+
+.chat-input input {
   font-size: 14px;
 }
 
 .chat-bubble.user {
-  background: #1e88e5;
+  background: #2563eb;
   color: white;
   margin-left: auto;
 }
 
 .chat-bubble.ai {
   background: #e5e7eb;
-  color: #111827;
 }
 
 .chat-input {
   display: flex;
-  gap: 8px;
+  padding: 10px;
+  gap: 5px;
 }
 
 .chat-input input {
   flex: 1;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
 }
 
 .chat-input button {
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 8px 12px;
   border: none;
-  background: #1e88e5;
+  border-radius: 8px;
+  background: #2563eb;
   color: white;
   cursor: pointer;
 }
 
+.chat-input button:hover {
+  background: #1e40af;
+}
 
-/* Arrival Animation */
-.arriving {
-  color: #e53935;
+.chatbot-box {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 300px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 999;
+}
+
+.chat-header {
+  background: #2563eb;
+  color: white;
+  padding: 10px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+
+/* ===== FLOATING CHAT BUTTON ===== */
+.chatbot-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  padding: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  transition: 0.3s;
+}
+
+.chatbot-float:hover {
+  transform: scale(1.1);
+}
+
+/* ===== ADMIN LAYOUT ===== */
+.admin-layout {
+  display: flex;
+  height: 100vh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  background: #0f172a;
+  color: white;
+}
+
+.sidebar h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.sidebar p {
+  transition: 0.2s;
+}
+
+.sidebar p:hover {
+  padding-left: 10px;
+}
+
+/* ===== MAIN ===== */
+.main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* ===== ADMIN MAP ===== */
+.main .leaflet-container {
+  height: 400px;
+  width: 100%;
+  border-radius: 12px;
+}
+
+/* ===== TEXT ===== */
+.card h3 {
+  margin-bottom: 10px;
+  color: #1f2937;
+}
+
+.card p {
+  margin: 4px 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .status-row {
+    flex-direction: column;
+  }
+
+  .trip-planner {
+    grid-template-columns: 1fr;
+  }
+
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+}
+
+/* ===== TRAFFIC COLORS ===== */
+.traffic-high {
+  color: red;
   font-weight: bold;
   animation: blink 1s infinite;
 }
 
-.traffic-badge {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-
-
-.admin-panel {
-  margin-top: 30px;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.admin-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.admin-buttons button {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  background: #1e88e5;
-  color: white;
-  cursor: pointer;
-}
-
-.admin-buttons button:hover {
-  background: #1565c0;
-}
-
-
-.alert {
-  background: #ff5252;
-  color: white;
-  padding: 8px;
-  border-radius: 8px;
-  margin-top: 10px;
+.traffic-medium {
+  color: orange;
   font-weight: bold;
 }
 
-.alert.anomaly {
-  background: #d50000;
+.traffic-low {
+  color: green;
+  font-weight: bold;
 }
 
-/* ============================= */
-/*        ANALYTICS DASHBOARD    */
-/* ============================= */
-
-.analytics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 18px;
-  margin: 30px 0;
+@keyframes blink {
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.analytics-card {
-  background: white;
-  padding: 18px;
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-  text-align: center;
-  transition: all 0.25s ease;
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.analytics-card:hover {
+.card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-.analytics-card h4 {
+.status-row .card {
+  flex: 1;
+  text-align: center;
+}
+
+.status-row .card h3 {
   font-size: 14px;
   color: #6b7280;
-  margin-bottom: 10px;
-  font-weight: 600;
 }
 
-.analytics-card p {
+.status-row .card p {
   font-size: 22px;
-  font-weight: 700;
-  color: #111827;
+  font-weight: bold;
+  color: #1e3a8a;
 }
 
-/* Highlight ETA card */
-.analytics-card:nth-child(3) {
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+button {
+  transition: all 0.2s ease;
 }
 
-/* Alert Card */
-.alert-card {
-  background: linear-gradient(135deg, #ff5252, #d50000);
-  color: white;
-  font-weight: 600;
+button:hover {
+  transform: scale(1.05);
 }
 
-.alert-card p {
-  color: white;
-}
-
-.health-card {
-  background: white;
-  padding: 15px;
+.leaflet-container {
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  margin-top: 20px;
+}
+
+/* ===== ADMIN TITLE ===== */
+.admin-title {
+  margin-bottom: 20px;
+  color: #1e293b;
+}
+
+/* ===== SIDEBAR MENU ===== */
+.menu p {
+  margin: 12px 0;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.menu p:hover {
+  opacity: 1;
+}
+
+.menu .active {
+  font-weight: bold;
+  color: #60a5fa;
+}
+
+/* ===== KPI CARDS ===== */
+.kpi {
   text-align: center;
 }
 
-.health-score {
-  font-size: 24px;
+.kpi h4 {
+  margin-bottom: 5px;
+  color: #64748b;
+}
+
+.kpi p {
+  font-size: 20px;
   font-weight: bold;
 }
 
-.health-score.good {
-  color: #2e7d32;
-}
-
-.health-score.moderate {
-  color: #f9a825;
-}
-
-.health-score.critical {
-  color: #c62828;
-}
-
-.critical-alert {
-  margin-top: 15px;
-  padding: 15px;
-  background: #b71c1c;
-  color: white;
-  font-weight: bold;
-  border-radius: 10px;
-  text-align: center;
-  animation: pulse 1.2s infinite;
-}
-
-.alert-log {
-  margin-top: 25px;
-  background: white;
-  padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-.alert-item {
-  background: #ffebee;
-  padding: 8px;
-  margin: 6px 0;
-  border-radius: 6px;
-  font-size: 14px;
-  border-left: 4px solid #c62828;
-}
-
-.overview {
-  margin-bottom: 25px;
-  background: white;
-  padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 15px;
-  margin-top: 10px;
-}
-
-.overview-card {
-  background: #f4f6f8;
-  padding: 12px;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.good {
-  color: #2e7d32;
-  font-weight: bold;
-}
-
-.moderate {
-  color: #f9a825;
-  font-weight: bold;
-}
-
-.critical {
-  color: #c62828;
-  font-weight: bold;
-}
-
-.health-bar {
-  height: 8px;
+/* ===== ADMIN MAP ===== */
+.admin-map .leaflet-container {
+  height: 400px;
   width: 100%;
-  background: #e0e0e0;
-  border-radius: 5px;
-  overflow: hidden;
+  border-radius: 12px;
+}
+
+/* ===== ALERT PANEL ===== */
+.alerts p {
+  background: #fee2e2;
+  padding: 8px;
+  border-radius: 8px;
   margin-bottom: 6px;
+  color: #991b1b;
 }
 
-.health-fill {
-  height: 100%;
-  transition: width 0.5s ease;
-}
-
-.health-fill.good {
-  background: #2e7d32;
-}
-
-.health-fill.moderate {
-  background: #f9a825;
-}
-
-.health-fill.critical {
-  background: #c62828;
-}
-
-.forecast-card {
-  margin-top: 15px;
-  padding: 12px;
-  background: #e3f2fd;
-  border-radius: 10px;
+.loading {
   text-align: center;
+  padding: 40px;
+  font-weight: bold;
+  color: #2563eb;
+  animation: pulse 1.2s infinite;
 }
 
 @keyframes pulse {
   0% {
-    opacity: 1;
+    opacity: 0.4;
   }
 
   50% {
-    opacity: 0.6;
+    opacity: 1;
   }
 
   100% {
-    opacity: 1;
-  }
-}
-
-@keyframes blink {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.2;
-  }
-
-  100% {
-    opacity: 1;
+    opacity: 0.4;
   }
 }

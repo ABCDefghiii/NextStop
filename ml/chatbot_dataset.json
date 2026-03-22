@@ -1,0 +1,56 @@
+{
+    "intents": [
+        {
+            "tag": "greeting",
+            "patterns": [
+                "Hello",
+                "Hi",
+                "Hey",
+                "Good morning",
+                "Good evening"
+            ],
+            "responses": [
+                "Hello! How can I help you with bus information?",
+                "Hi there! Ask me about bus timings."
+            ]
+        },
+        {
+            "tag": "bus_eta",
+            "patterns": [
+                "When will the bus arrive",
+                "Bus arrival time",
+                "ETA for my bus",
+                "How long for the bus"
+            ],
+            "responses": [
+                "Your bus will arrive shortly.",
+                "Please check the ETA displayed on the dashboard."
+            ]
+        },
+        {
+            "tag": "route_info",
+            "patterns": [
+                "Which route goes to Pitapuram",
+                "Bus routes available",
+                "Route details",
+                "Where does this bus go"
+            ],
+            "responses": [
+                "This route connects multiple stops. Please check the route display.",
+                "Route information is shown on the dashboard."
+            ]
+        },
+        {
+            "tag": "help",
+            "patterns": [
+                "Help",
+                "What can you do",
+                "How does this work",
+                "Support"
+            ],
+            "responses": [
+                "I can help you with bus arrival times, routes, and system information."
+            ]
+        }
+    ]
+}
