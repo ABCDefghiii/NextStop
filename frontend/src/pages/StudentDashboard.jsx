@@ -4,7 +4,6 @@ import socket from "../socket";
 
 function StudentDashboard() {
 
-    // ================= STATE =================
     const [buses, setBuses] = useState([]);
     const [myStop, setMyStop] = useState("");
     const [userMessage, setUserMessage] = useState("");
@@ -13,24 +12,19 @@ function StudentDashboard() {
     const [liveETA, setLiveETA] = useState(0);
     const [showChat, setShowChat] = useState(false);
 
-    // ================= SOCKET =================
+    // SOCKET
     useEffect(() => {
-        socket.on("busData", (data) => {
-            console.log("Student received:", data);
-            setBuses(data);
-        });
-
+        socket.on("busData", (data) => setBuses(data));
         return () => socket.off("busData");
     }, []);
 
-    // ================= AUTO SELECT =================
+    // AUTO SELECT
     useEffect(() => {
         if (buses.length > 0 && selectedBusId === null) {
             setSelectedBusId(buses[0].id);
         }
     }, [buses, selectedBusId]);
 
-    // ================= DERIVED =================
     const selectedBus =
         buses.find(bus => bus.id === selectedBusId) ||
         (buses.length > 0 ? buses[0] : null);
@@ -43,7 +37,7 @@ function StudentDashboard() {
             }, null)
             : null;
 
-    // ================= ETA ANIMATION =================
+    // ETA animation
     useEffect(() => {
         if (!nextBus) return;
 
@@ -56,7 +50,7 @@ function StudentDashboard() {
         return () => clearInterval(interval);
     }, [nextBus]);
 
-    // ================= CHATBOT =================
+    // CHATBOT
     const handleAsk = async () => {
         if (!userMessage.trim()) return;
 
@@ -80,26 +74,22 @@ function StudentDashboard() {
         }
     };
 
-    // ================= UI =================
     return (
-        <div className="app">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-800 p-4 md:p-6">
 
-            <h1 className="title">🚌 NextStop</h1>
+            {/* ===== HEADER ===== */}
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg shadow-md rounded-2xl p-4 mb-6 flex justify-between items-center">
 
-            {/* ===== HEALTH STRIP ===== */}
-            <div className="health-bar">
-                <div>🟢 All Routes: Normal</div>
-                <div>🟠 Alert: Minor Delay</div>
-            </div>
+                <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+                    🚌 NextStop
+                </h1>
 
-            {/* ===== TRIP PLANNER ===== */}
-            <div className="card trip-planner">
+                <div className="flex gap-3 items-center">
 
-                <div>
-                    <label>Route</label>
                     <select
                         value={selectedBusId || ""}
                         onChange={(e) => setSelectedBusId(Number(e.target.value))}
+                        className="px-3 py-2 rounded-lg border"
                     >
                         {buses.map((bus) => (
                             <option key={bus.id} value={bus.id}>
@@ -107,13 +97,11 @@ function StudentDashboard() {
                             </option>
                         ))}
                     </select>
-                </div>
 
-                <div>
-                    <label>Stop</label>
                     <select
                         value={myStop}
                         onChange={(e) => setMyStop(e.target.value)}
+                        className="px-3 py-2 rounded-lg border"
                     >
                         <option value="">Choose Stop</option>
                         <option value="Yanam">Yanam</option>
@@ -122,111 +110,153 @@ function StudentDashboard() {
                         <option value="Kakinada">Kakinada</option>
                         <option value="Ideal College">Ideal College</option>
                     </select>
-                </div>
 
-                <div className="fleet-box">
-                    <p>Active Fleet</p>
-                    <h3>{buses.length}</h3>
-                </div>
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem("isLoggedIn");
+                            window.location.href = "/login";
+                        }}
+                        className="bg-red-500 text-white px-3 py-1 rounded"
+                    >
+                        Logout
+                    </button>
 
+                </div>
             </div>
 
             {/* ===== MAP ===== */}
-            <div className="card map-card">
+            <div className="bg-white/60 backdrop-blur-lg rounded-2xl shadow-lg p-3 mb-6 relative">
 
-                {buses.length === 0 ? (
-                    <div className="loading">Loading buses...</div>
-                ) : (
-                    <>
-                        <MapView
-                            buses={buses}
-                            myStop={myStop}
-                            selectedBusId={selectedBusId}
-                        />
+                <MapView buses={buses} myStop={myStop} selectedBusId={selectedBusId} />
 
-                        {nextBus && (
-                            <div className="eta-overlay">
-                                ETA: {liveETA} mins
-                            </div>
-                        )}
-                    </>
+                {/* ETA BOX */}
+                {nextBus && (
+                    <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg">
+                        ETA: {liveETA} mins <br />
+                        <span className="text-xs">
+                            {nextBus.confidence || 90}% confidence
+                        </span>
+                    </div>
                 )}
 
-            </div>
-            {/* ===== INSIGHTS GRID ===== */}
+                {/* FLOATING CARDS */}
+                <div className="absolute top-6 left-6 space-y-3">
 
-            <div className="insights-grid">
+                    <div className="bg-white p-3 rounded shadow w-44">
+                        <p className="text-xs">🚍 Speed</p>
+                        <h2 className="text-green-600 font-bold">
+                            {selectedBus?.speed} km/h
+                        </h2>
+                    </div>
 
-                <div className="card">
-                    <h3>⏱ ETA & Trips</h3>
-                    <p>Next: {nextBus?.eta} min</p>
-                    <p>Following: {nextBus?.eta + 5} min</p>
+                    <div className="bg-white p-3 rounded shadow w-44">
+                        <p className="text-xs">📏 Distance</p>
+                        <h2 className="text-blue-600 font-bold">
+                            {selectedBus?.distance?.toFixed(1)} km
+                        </h2>
+                    </div>
+
+                    <div className="bg-white p-3 rounded shadow w-44">
+                        <p className="text-xs">🚦 Traffic</p>
+                        <h2 className="font-bold">{selectedBus?.traffic}</h2>
+                    </div>
+
                 </div>
+            </div>
 
-                <div className="card">
-                    <h3>📊 Route Status</h3>
+            {/* ===== BOTTOM CARDS ===== */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <h3 className="font-bold mb-2">📊 Route Status</h3>
                     <p>Speed: {selectedBus?.speed} km/h</p>
                     <p>Distance: {selectedBus?.distance?.toFixed(1)} km</p>
-
-                    <p className={
-                        selectedBus?.traffic === "High" ? "traffic-high" :
-                            selectedBus?.traffic === "Medium" ? "traffic-medium" :
-                                "traffic-low"
-                    }>
-                        Traffic: {selectedBus?.traffic}
-                    </p>
                 </div>
 
-                <div className="card">
-                    <h3>⚠ Service Alerts</h3>
-                    <p>No major issues</p>
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <h3 className="font-bold mb-2">⏱ ETA & Trips</h3>
+                    <p>Next: {liveETA} mins</p>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow">
+                    <h3 className="font-bold mb-2">⚠ Service Alerts</h3>
+                    <p className="text-green-600">No major issues</p>
                 </div>
 
             </div>
 
-            {/* ===== CHAT FLOAT ===== */}
-            <div
-                className="chatbot-float"
-                onClick={() => setShowChat(!showChat)}
-            >
-                💬
-            </div>
+            {/* ===== GLASS CHATBOT ===== */}
+            <div className="fixed bottom-6 right-6 z-[2000]">
 
-            {showChat && (
-                <div className="chatbot-box">
+                {/* Floating Button */}
+                {!showChat && (
+                    <button
+                        onClick={() => setShowChat(true)}
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 
+            text-white p-4 rounded-full shadow-xl hover:scale-110 transition"
+                    >
+                        💬
+                    </button>
+                )}
 
-                    <div className="chat-header">
-                        🤖 Navis AI
-                        <span onClick={() => setShowChat(false)}>❌</span>
-                    </div>
+                {/* Chat Window */}
+                {showChat && (
+                    <div className="w-80 
+        backdrop-blur-xl bg-white/20 dark:bg-gray-800/30 
+        border border-white/30 dark:border-gray-700/40 
+        rounded-2xl shadow-2xl overflow-hidden">
 
-                    <div className="chat-window">
-                        {chatHistory.map((msg, i) => (
-                            <div
-                                key={i}
-                                className={
-                                    msg.sender === "user"
-                                        ? "chat-bubble user"
-                                        : "chat-bubble ai"
-                                }
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 
+            text-white p-3 flex justify-between items-center">
+                            <span className="font-semibold">🤖 Navis AI</span>
+                            <button onClick={() => setShowChat(false)}>✖</button>
+                        </div>
+
+                        {/* Messages */}
+                        <div className="p-3 h-64 overflow-y-auto space-y-2">
+
+                            {chatHistory.length === 0 && (
+                                <p className="text-gray-200 text-sm">
+                                    Hello! How can I help you?
+                                </p>
+                            )}
+
+                            {chatHistory.map((msg, i) => (
+                                <div
+                                    key={i}
+                                    className={`px-3 py-2 rounded-lg text-sm max-w-[80%] ${msg.sender === "user"
+                                        ? "ml-auto bg-blue-500 text-white"
+                                        : "bg-white/40 text-gray-800 dark:text-white backdrop-blur-md"
+                                        }`}
+                                >
+                                    {msg.text}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Input */}
+                        <div className="flex border-t border-white/20">
+
+                            <input
+                                value={userMessage}
+                                onChange={(e) => setUserMessage(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+                                className="flex-1 p-2 bg-transparent outline-none text-white placeholder-gray-300"
+                                placeholder="Ask Navis AI..."
+                            />
+
+                            <button
+                                onClick={handleAsk}
+                                className="bg-blue-600 text-white px-4"
                             >
-                                {msg.text}
-                            </div>
-                        ))}
-                    </div>
+                                Send
+                            </button>
 
-                    <div className="chat-input">
-                        <input
-                            value={userMessage}
-                            onChange={(e) => setUserMessage(e.target.value)}
-                            placeholder="Ask Navis AI..."
-                        />
-                        <button onClick={handleAsk}>Send</button>
+                        </div>
                     </div>
-
-                </div>
-            )}
+                )}
+            </div>
 
         </div>
     );

@@ -8,78 +8,80 @@ function SystemOverview({
     activeAlerts,
     trafficLevel
 }) {
-    return (<div className="overview">
+    return (
+        <div>
 
-        ```
-        {/* Transport Dashboard */}
-        <div
-            style={{
-                display: "flex",
-                gap: "20px",
-                marginBottom: "20px",
-                flexWrap: "wrap"
-            }}
-        >
-            <div className="dashboard-card">
-                🚍 Total Buses <br />
-                <b>{totalBuses}</b>
+            {/* ===== TOP STATS ===== */}
+            <div className="flex gap-4 mb-6 flex-wrap">
+
+                <div className="bg-white rounded-2xl shadow-xl p-6 mt-6">
+                    🚍 Total Buses <br />
+                    <b>{totalBuses}</b>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-6 mt-6">
+                    ⏱ Avg ETA <br />
+                    <b>{avgETA} mins</b>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-6 mt-6">
+                    🚨 Active Alerts <br />
+                    <b>{activeAlerts}</b>
+                    <p className="text-green-600 font-medium">
+                        ✅ No active alerts
+                    </p>                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl p-6 mt-6">
+                    🚦 Traffic Level <br />
+                    <b>{trafficLevel}</b>
+                </div>
+
             </div>
 
-            <div className="dashboard-card">
-                ⏱ Avg ETA <br />
-                <b>{avgETA} mins</b>
+            {/* ===== SYSTEM OVERVIEW ===== */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    📊 System Overview</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {buses.map((bus, index) => {
+                        const health = calculateHealth(bus);
+
+                        return (
+                            <div key={index} className="p-4 rounded-xl bg-gray-50 shadow-sm">
+
+                                {/* Route Name */}
+                                <div className="flex justify-between items-center mb-2">
+                                    <p className="font-medium">{bus.route}</p>
+                                    <p className="text-sm text-gray-500">{health} / 100</p>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                    <div
+                                        className={`h-2 rounded-full ${health > 70
+                                            ? "bg-green-500"
+                                            : health > 40
+                                                ? "bg-yellow-500"
+                                                : "bg-red-500"
+                                            }`}
+                                        style={{ width: `${health}%` }}
+                                    ></div>
+                                </div>
+
+                                {/* Details */}
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>⏱ ETA: {bus.eta} mins</span>
+                                    <span>🚦 {bus.traffic}</span>
+                                </div>
+
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
-            <div className="dashboard-card">
-                🚨 Active Alerts <br />
-                <b>{activeAlerts}</b>
-            </div>
-
-            <div className="dashboard-card">
-                🚦 Traffic Level <br />
-                <b>{trafficLevel}</b>
-            </div>
         </div>
-
-        <h3>📊 System Overview</h3>
-
-        <div className="overview-grid">
-            {buses.map((bus) => {
-                const score = calculateHealth(bus);
-
-                return (
-                    <div key={bus.id} className="overview-card">
-                        <p><strong>{bus.route}</strong></p>
-
-                        <p style={{ marginBottom: "6px" }}>
-                            {score} / 100
-                        </p>
-
-                        <div className="health-bar">
-                            <div
-                                className={`health-fill ${score > 70
-                                        ? "good"
-                                        : score > 40
-                                            ? "moderate"
-                                            : "critical"
-                                    }`}
-                                style={{ width: `${score}%` }}
-                            />
-                        </div>
-
-                        <p style={{ fontSize: "13px" }}>
-                            ⏱ ETA: {bus.eta} mins
-                        </p>
-
-                        <p style={{ fontSize: "13px" }}>
-                            🚦 Traffic: {bus.traffic}
-                        </p>
-                    </div>
-                );
-            })}
-        </div>
-    </div>
-
     );
 }
 

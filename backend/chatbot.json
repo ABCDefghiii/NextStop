@@ -1,0 +1,26 @@
+{
+    "intents": [
+        {
+            "tag": "greeting",
+            "patterns": [
+                "hello",
+                "hi",
+                "hey"
+            ],
+            "responses": [
+                "Hello! How can I help you?",
+                "Hi there! Ask me about buses 🚍"
+            ]
+        },
+        {
+            "tag": "help",
+            "patterns": [
+                "help",
+                "what can you do"
+            ],
+            "responses": [
+                "You can ask me about ETA, traffic, fastest bus, and routes."
+            ]
+        }
+    ]
+}

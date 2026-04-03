@@ -16,7 +16,7 @@ import busIconImage from "../assets/bus.png";
 import { routes } from "../data/routes";
 import { trafficZones } from "../data/trafficZones";
 
-/* ===== FIX LEAFLET DEFAULT ICON ISSUE ===== */
+/* ===== FIX LEAFLET ICON ===== */
 delete L.Icon.Default.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
@@ -25,19 +25,32 @@ L.Icon.Default.mergeOptions({
     shadowUrl: require("leaflet/dist/images/marker-shadow.png")
 });
 
-/* ===== CUSTOM BUS ICON ===== */
+/* ===== BUS ICON ===== */
 const busIcon = new L.Icon({
     iconUrl: busIconImage,
     iconSize: [35, 35]
 });
 
-/* ===== RECENTER MAP ===== */
+/* ===== FIX MAP SIZE ===== */
+function FixMapSize() {
+    const map = useMap();
+
+    useEffect(() => {
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 200);
+    }, [map]);
+
+    return null;
+}
+
+/* ===== RECENTER ===== */
 function RecenterMap({ lat, lng }) {
     const map = useMap();
 
     useEffect(() => {
         if (lat && lng) {
-            map.panTo([lat, lng]);
+            map.setView([lat, lng], 13);
         }
     }, [lat, lng, map]);
 
@@ -66,7 +79,7 @@ function generateCurvedPath(start, end) {
     return path;
 }
 
-/* ===== MAIN COMPONENT ===== */
+/* ===== MAIN ===== */
 function MapView({ buses = [], myStop, selectedBusId, isAdmin = false }) {
 
     const defaultCenter = [16.9891, 82.2475];
@@ -76,13 +89,15 @@ function MapView({ buses = [], myStop, selectedBusId, isAdmin = false }) {
         : (buses.find(b => b.id === selectedBusId) || buses[0]);
 
     const routeStops =
-        selectedBus && selectedBus.routeKey
+        selectedBus &&
+            selectedBus.routeKey &&
+            routes[selectedBus.routeKey]
             ? routes[selectedBus.routeKey]
             : [];
 
     let fullPath = [];
 
-    if (routeStops && routeStops.length > 1) {
+    if (routeStops.length > 1) {
         for (let i = 0; i < routeStops.length - 1; i++) {
             const start = [routeStops[i].lat, routeStops[i].lng];
             const end = [routeStops[i + 1].lat, routeStops[i + 1].lng];
@@ -95,7 +110,7 @@ function MapView({ buses = [], myStop, selectedBusId, isAdmin = false }) {
     const maxDistance = 5;
 
     const progressRatio = selectedBus
-        ? Math.max(0, Math.min(1, 1 - selectedBus.distance / maxDistance))
+        ? Math.max(0, Math.min(1, 1 - (selectedBus.distance || 0) / maxDistance))
         : 0;
 
     const progressIndex = Math.floor(progressRatio * fullPath.length);
@@ -104,105 +119,114 @@ function MapView({ buses = [], myStop, selectedBusId, isAdmin = false }) {
     const remainingPath = fullPath.slice(progressIndex);
 
     return (
-        <MapContainer
-            center={selectedBus ? [selectedBus.lat, selectedBus.lng] : defaultCenter}
-            zoom={13}
-            scrollWheelZoom={true}
-            style={{ height: "400px", width: "100%", borderRadius: "12px" }}
-        >
-            <TileLayer
-                attribution="&copy; OpenStreetMap contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+        <div className="w-full h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow relative z-0">
+            <MapContainer
+                center={
+                    selectedBus
+                        ? [selectedBus.lat, selectedBus.lng]
+                        : defaultCenter
+                }
+                zoom={13}
+                scrollWheelZoom={true}
+                className="w-full h-full"
+            >
 
-            {/* RECENTER */}
-            {selectedBus && (
-                <RecenterMap lat={selectedBus.lat} lng={selectedBus.lng} />
-            )}
+                <FixMapSize />
 
-            {/* ROUTE */}
-            {traveledPath.length > 0 && (
-                <Polyline positions={traveledPath} pathOptions={{ color: "green", weight: 5 }} />
-            )}
+                <TileLayer
+                    attribution="&copy; OpenStreetMap contributors"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
 
-            {remainingPath.length > 0 && (
-                <Polyline positions={remainingPath} pathOptions={{ color: "blue", weight: 5 }} />
-            )}
+                {/* RECENTER */}
+                {selectedBus && (
+                    <RecenterMap lat={selectedBus.lat} lng={selectedBus.lng} />
+                )}
 
-            {/* STOPS */}
-            {Object.values(routes).flat().map((stop, index) => {
-                if (!stop.name) return null;
+                {/* ROUTE */}
+                {traveledPath.length > 0 && (
+                    <Polyline
+                        positions={traveledPath}
+                        pathOptions={{ color: "green", weight: 5 }}
+                    />
+                )}
 
-                const isSelected = stop.name === myStop;
+                {remainingPath.length > 0 && (
+                    <Polyline
+                        positions={remainingPath}
+                        pathOptions={{ color: "blue", weight: 5 }}
+                    />
+                )}
 
-                return (
-                    <CircleMarker
-                        key={index}
-                        center={[stop.lat, stop.lng]}
-                        radius={isSelected ? 10 : 6}
-                        pathOptions={{
-                            color: isSelected ? "#f59e0b" : "#1d4ed8",
-                            fillColor: isSelected ? "#fbbf24" : "#3b82f6",
-                            fillOpacity: 0.9
-                        }}
-                    >
-                        <Popup>🚏 {stop.name}</Popup>
-                    </CircleMarker>
-                );
-            })}
+                {/* STOPS */}
+                {Object.values(routes).flat().map((stop, index) => {
+                    if (!stop.name) return null;
 
-            {/* TRAFFIC */}
-            {trafficZones.map((zone, index) => {
-                let color = "green";
-                if (zone.level === "Medium") color = "orange";
-                if (zone.level === "High") color = "red";
+                    const isSelected = stop.name === myStop;
 
-                return (
-                    <CircleMarker
-                        key={index}
-                        center={[zone.lat, zone.lng]}
-                        radius={20}
-                        pathOptions={{
-                            color,
-                            fillColor: color,
-                            fillOpacity: 0.35
-                        }}
-                    >
-                        <Popup>
-                            🚦 {zone.name}<br />
-                            Traffic: {zone.level}
-                        </Popup>
-                    </CircleMarker>
-                );
-            })}
+                    return (
+                        <CircleMarker
+                            key={index}
+                            center={[stop.lat, stop.lng]}
+                            radius={isSelected ? 10 : 6}
+                            pathOptions={{
+                                color: isSelected ? "#f59e0b" : "#1d4ed8",
+                                fillColor: isSelected ? "#fbbf24" : "#3b82f6",
+                                fillOpacity: 0.9
+                            }}
+                        >
+                            <Popup>🚏 {stop.name}</Popup>
+                        </CircleMarker>
+                    );
+                })}
 
-            {/* BUSES */}
-            {buses.map((bus) => {
+                {/* TRAFFIC */}
+                {trafficZones.map((zone, index) => {
+                    let color = "green";
+                    if (zone.level === "Medium") color = "orange";
+                    if (zone.level === "High") color = "red";
 
-                const isSelected = bus.id === selectedBus?.id;
-                const opacityValue = isAdmin ? 1 : (isSelected ? 1 : 0.4);
-                const smoothFactor = 0.2;
+                    return (
+                        <CircleMarker
+                            key={index}
+                            center={[zone.lat, zone.lng]}
+                            radius={20}
+                            pathOptions={{
+                                color,
+                                fillColor: color,
+                                fillOpacity: 0.35
+                            }}
+                        >
+                            <Popup>
+                                🚦 {zone.name}<br />
+                                Traffic: {zone.level}
+                            </Popup>
+                        </CircleMarker>
+                    );
+                })}
 
-                return (
-                    <Marker
-                        key={bus.id}
-                        position={[
-                            bus.lat + Math.sin(Date.now() / 5000) * 0.0001,
-                            bus.lng + Math.cos(Date.now() / 5000) * 0.0001
-                        ]}
-                        icon={busIcon}
-                        opacity={isAdmin ? 1 : (bus.id === selectedBusId ? 1 : 0.4)}
-                    >
-                        <Popup>
-                            🚌 <strong>{bus.route}</strong><br />
-                            ETA: {bus.eta} mins<br />
-                            Traffic: {bus.traffic}
-                        </Popup>
-                    </Marker>
-                );
-            })}
+                {/* BUSES */}
+                {buses.map((bus) => {
+                    const isSelected = bus.id === selectedBus?.id;
 
-        </MapContainer>
+                    return (
+                        <Marker
+                            key={bus.id}
+                            position={[bus.lat, bus.lng]}
+                            icon={busIcon}
+                            opacity={isAdmin ? 1 : (isSelected ? 1 : 0.4)}
+                        >
+                            <Popup>
+                                🚌 <strong>{bus.route}</strong><br />
+                                ETA: {bus.eta} mins<br />
+                                Traffic: {bus.traffic}
+                            </Popup>
+                        </Marker>
+                    );
+                })}
+
+            </MapContainer>
+        </div>
     );
 }
 

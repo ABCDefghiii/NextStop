@@ -1,93 +1,72 @@
-import React, { useState, useEffect, useRef } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { io } from "socket.io-client";
-
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Portal from "./pages/Portal";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Login from "./pages/Login";
 
 function App() {
 
-  const [buses, setBuses] = useState([]);
-  const [etaHistory, setEtaHistory] = useState({});
-  const [alerts, setAlerts] = useState([]);
+  const [darkMode, setDarkMode] = useState(false);
 
-  const socketRef = useRef(null);
-
+  // DARK MODE
   useEffect(() => {
-
-    // Connect to backend
-    socketRef.current = io("http://localhost:5000", {
-      transports: ["websocket"],
-    });
-    // Receive live bus data
-    socketRef.current.on("busData", (data) => {
-      setBuses(data);
-    });
-
-    // Receive ETA history analytics
-    socketRef.current.on("etaHistory", (historyData) => {
-      setEtaHistory(historyData);
-    });
-
-    // Receive alerts
-    socketRef.current.on("criticalAlert", (data) => {
-
-      setAlerts((prevAlerts) => {
-
-        const newAlert = {
-          ...data,
-          id: Date.now()
-        };
-
-        return [newAlert, ...prevAlerts];
-
-      });
-
-    });
-
-    // Cleanup socket
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-
-  }, []);
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   return (
+    <>
+      {/* DARK MODE BUTTON */}
+      <button
+        onClick={() => setDarkMode(prev => !prev)}
+        className="fixed top-4 right-4 z-[3000] 
+        bg-gray-800 text-white 
+        dark:bg-white dark:text-black 
+        px-4 py-2 rounded-lg shadow-lg 
+        hover:scale-105 transition"
+      >
+        {darkMode ? "☀️ Light" : "🌙 Dark"}
+      </button>
 
-    <Router>
+      <Router>
+        <Routes>
 
-      <Routes>
+          {/* PORTAL */}
+          <Route path="/" element={<Portal />} />
 
-        {/* Student Interface */}
-        <Route
-          path="/"
-          element={
-            <StudentDashboard
-              buses={buses}
-            />
-          }
-        />
+          {/* LOGIN */}
+          <Route path="/login" element={<Login />} />
 
-        {/* Admin Interface */}
-        <Route
-          path="/admin"
-          element={
-            <AdminDashboard
-              buses={buses}
-              etaHistory={etaHistory}
-              alerts={alerts}
-            />
-          }
-        />
+          {/* STUDENT */}
+          <Route
+            path="/student"
+            element={
+              localStorage.getItem("isLoggedIn") === "true" &&
+                localStorage.getItem("role") === "student"
+                ? <StudentDashboard />
+                : <Navigate to="/login?role=student" />
+            }
+          />
 
-      </Routes>
+          {/* ADMIN */}
+          <Route
+            path="/admin"
+            element={
+              localStorage.getItem("isLoggedIn") === "true" &&
+                localStorage.getItem("role") === "admin"
+                ? <AdminDashboard />
+                : <Navigate to="/login?role=admin" />
+            }
+          />
 
-    </Router>
-
+        </Routes>
+      </Router>
+    </>
   );
-
 }
 
 export default App;
