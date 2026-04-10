@@ -4,11 +4,14 @@ const http = require("http");
 const { Server } = require("socket.io");
 const routes = require("./routes/kakinadaRoutes");
 const chatbotData = require("./chatbot.json");
-const { spawn } = require("child_process");
+
+//  DB
+const { connectDB } = require("./database");
+const Route = require("./Route");
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // ✅ FIX
+app.use(express.json());
 
 const server = http.createServer(app);
 
@@ -44,6 +47,40 @@ app.post("/login", (req, res) => {
 });
 
 // ----------------------
+//  API: GET ROUTES FROM DB
+// ----------------------
+app.get("/api/routes", async (req, res) => {
+    try {
+        const routesData = await Route.find();
+        res.json(routesData);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+// ----------------------
+// AUTO INSERT DATA
+// ----------------------
+async function initDB() {
+    const count = await Route.countDocuments();
+
+    if (count === 0) {
+        await Route.create({
+            route_name: "Yanam → Ideal College",
+            stops: [
+                { name: "Yanam", lat: 16.7333, lng: 82.2167 },
+                { name: "Tallarevu", lat: 16.7800, lng: 82.2400 },
+                { name: "Sarpavaram", lat: 16.9000, lng: 82.2500 },
+                { name: "Kakinada", lat: 16.9891, lng: 82.2475 },
+                { name: "Ideal College", lat: 17.0005, lng: 82.2700 }
+            ]
+        });
+
+        console.log(" Default route inserted");
+    }
+}
+
+// ----------------------
 // SESSION CONTEXT
 // ----------------------
 let sessionContext = {
@@ -59,7 +96,7 @@ let buses = [
     { id: 1, route: "Yanam Route", routeKey: "route1", speed: 35, distance: 5, lat: 16.7333, lng: 82.2167, pathIndex: 0 },
     { id: 2, route: "Yanam Route", routeKey: "route1", speed: 34, distance: 5, lat: 16.75, lng: 82.23, pathIndex: 3 },
     { id: 3, route: "Yanam Route", routeKey: "route1", speed: 36, distance: 5, lat: 16.82, lng: 82.26, pathIndex: 6 },
-    { id: 4, route: "Uppada Route", routeKey: "route2", speed: 40, distance: 5, lat: 16.98, lng: 82.35, pathIndex: 0 },
+    { id: 4, route: "Uppada Route", routeKey: "route2", speed: 40, distance: 5, lat: 17.09, lng: 82.35, pathIndex: 0 },
     { id: 5, route: "Pithapuram Route", routeKey: "route3", speed: 30, distance: 5, lat: 17.1167, lng: 82.2667, pathIndex: 0 }
 ];
 
@@ -119,57 +156,24 @@ function calculateConfidence(history) {
 }
 
 // ----------------------
-// ML PREDICTION
-// ----------------------
-function predictETAs(callback) {
-
-    const python = spawn("python", ["predict_eta.py"]);
-
-    python.stdin.write(JSON.stringify(buses));
-    python.stdin.end();
-
-    let result = "";
-
-    python.stdout.on("data", (data) => {
-        result += data.toString();
-    });
-
-    python.stderr.on("data", (err) => {
-        console.error("Python error:", err.toString());
-    });
-
-    python.on("close", () => {
-        try {
-            const predictions = JSON.parse(result);
-
-            buses.forEach((bus, i) => {
-                bus.eta = predictions[i] || 5;
-            });
-
-        } catch (error) {
-            console.error("ML fallback:", error);
-
-            buses.forEach((bus) => {
-                bus.eta = Math.round((bus.distance / bus.speed) * 60);
-            });
-        }
-
-        callback();
-    });
-}
-
-// ----------------------
-// SIMULATION
+// BUS SIMULATION
 // ----------------------
 setInterval(() => {
-
     buses.forEach((bus) => {
-        const route = routes[bus.routeKey];
-        if (!route) return;
+        const routeObj = routes[bus.routeKey];
+        if (!routeObj) return;
+
+        const route = routeObj.path;
+        if (!route || route.length === 0) return;
+
+        if (bus.pathIndex >= route.length) {
+            bus.pathIndex = 0;
+        }
 
         const nextPoint = route[bus.pathIndex];
-        const moveFactor = 0.1;
+        if (!nextPoint) return;
 
+        const moveFactor = 0.1;
         bus.lat += (nextPoint.lat - bus.lat) * moveFactor;
         bus.lng += (nextPoint.lng - bus.lng) * moveFactor;
 
@@ -184,29 +188,19 @@ setInterval(() => {
 
         bus.traffic = getTrafficLevel();
         bus.distance = calculateRemainingDistance(route, bus.pathIndex);
+
+        // ETA & history
+        bus.eta = Math.round((bus.distance / bus.speed) * 60);
+
+        if (!etaHistoryLog[bus.id]) etaHistoryLog[bus.id] = [];
+        etaHistoryLog[bus.id].push(bus.eta);
+        if (etaHistoryLog[bus.id].length > 100) etaHistoryLog[bus.id].shift();
+
+        bus.confidence = calculateConfidence(etaHistoryLog[bus.id]);
     });
 
-    predictETAs(() => {
-
-        buses.forEach((bus) => {
-
-            if (!etaHistoryLog[bus.id]) {
-                etaHistoryLog[bus.id] = [];
-            }
-
-            etaHistoryLog[bus.id].push(bus.eta);
-
-            if (etaHistoryLog[bus.id].length > 100) {
-                etaHistoryLog[bus.id].shift();
-            }
-
-            // ✅ NOW correct timing
-            bus.confidence = calculateConfidence(etaHistoryLog[bus.id]);
-        });
-
-        io.emit("busData", buses);
-        io.emit("etaHistory", etaHistoryLog);
-    });
+    io.emit("busData", buses);
+    io.emit("etaHistory", etaHistoryLog);
 
 }, 1000);
 
@@ -224,88 +218,56 @@ io.on("connection", (socket) => {
     });
 });
 
-// --------------------------
-// NLP Chatbot Logic
-// --------------------------
+// ----------------------
+// CHATBOT
+// ----------------------
 app.get("/chatbot", (req, res) => {
-
     const message = req.query.message || "";
     const busId = req.query.busId;
-
     const bus = buses.find(b => b.id == busId);
 
-    const python = spawn("python", [
-        "predict_nlp.py",
-        message
-    ]);
+    const { spawn } = require("child_process");
+    const python = spawn("python", ["predict_nlp.py", message]);
 
     let intent = "";
 
-    python.stdout.on("data", (data) => {
-        intent += data.toString();
-    });
-
-    python.stderr.on("data", (err) => {
-        console.error("NLP Python Error:", err.toString());
-    });
+    python.stdout.on("data", (data) => intent += data.toString());
+    python.stderr.on("data", (err) => console.error("NLP Python Error:", err.toString()));
 
     python.on("close", () => {
-
         intent = intent.trim();
-
         let reply = "I didn't understand that.";
 
-        if (intent === "greeting") {
-            reply = "Hello! I'm Navis AI. How can I help you today?";
-        }
-
-        else if (intent === "eta") {
-            reply = `Your bus will arrive in ${bus?.eta} minutes.`;
-        }
-
-        else if (intent === "traffic") {
-            reply = `Traffic on your route is currently ${bus?.traffic}.`;
-        }
-
-        else if (intent === "distance") {
-            reply = `The bus is ${bus?.distance?.toFixed(1)} km away.`;
-        }
-
-        else if (intent === "speed") {
-            reply = `The bus is moving at ${bus?.speed} km/h.`;
-        }
-
+        if (intent === "greeting") reply = "Hello! I'm Navis AI. How can I help you today?";
+        else if (intent === "eta") reply = `Your bus will arrive in ${bus?.eta} minutes.`;
+        else if (intent === "traffic") reply = `Traffic on your route is currently ${bus?.traffic}.`;
+        else if (intent === "distance") reply = `The bus is ${bus?.distance?.toFixed(1)} km away.`;
+        else if (intent === "speed") reply = `The bus is moving at ${bus?.speed} km/h.`;
         else if (intent === "fastest") {
             const fastest = buses.reduce((a, b) => a.speed > b.speed ? a : b);
             reply = `Bus ${fastest.id} is the fastest currently.`;
         }
-
-        else if (intent === "route") {
-            reply = `This bus is on ${bus?.route}.`;
-        }
-
-        else if (intent === "count") {
-            reply = `There are ${buses.length} buses running currently.`;
-        }
-
-        else if (intent === "delay") {
-            if (bus?.traffic === "High") {
-                reply = "Yes, there might be a delay due to heavy traffic.";
-            } else {
-                reply = "No significant delays expected.";
-            }
-        }
-
-        else if (intent === "location") {
-            reply = `The bus is currently near latitude ${bus?.lat.toFixed(3)} and longitude ${bus?.lng.toFixed(3)}.`;
-        }
+        else if (intent === "route") reply = `This bus is on ${bus?.route}.`;
+        else if (intent === "count") reply = `There are ${buses.length} buses running currently.`;
+        else if (intent === "delay") reply = bus?.traffic === "High"
+            ? "Yes, there might be a delay due to heavy traffic."
+            : "No significant delays expected.";
+        else if (intent === "location") reply = `The bus is near lat ${bus?.lat.toFixed(3)}, lng ${bus?.lng.toFixed(3)}.`;
 
         res.json({ reply });
     });
 });
 
-
 // ----------------------
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// START SERVER
+// ----------------------
+async function startServer() {
+    await connectDB();
+    await initDB();
+
+    server.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+startServer();
