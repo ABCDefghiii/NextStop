@@ -1,6 +1,6 @@
 module.exports = {
 
-    route1: [
+    route1: { path:[
 
         { name: "Yanam", lat: 16.7333, lng: 82.2167 },
 
@@ -22,9 +22,10 @@ module.exports = {
 
         { name: "Ideal College", lat: 17.0005, lng: 82.2700 }
 
-    ],
+    ]
+},
 
-    route2: [
+    route2:{ path: [
 
         { name: "Uppada", lat: 17.0900, lng: 82.3500 },
 
@@ -35,9 +36,10 @@ module.exports = {
 
         { name: "Ideal College", lat: 17.0005, lng: 82.2700 }
 
-    ],
+    ]
+},
 
-    route3: [
+    route3: { path:[
 
         { name: "Pithapuram", lat: 17.1167, lng: 82.2667 },
 
@@ -48,6 +50,6 @@ module.exports = {
 
         { name: "Ideal College", lat: 17.0005, lng: 82.2700 }
 
-    ]
+    ] }
 
 };

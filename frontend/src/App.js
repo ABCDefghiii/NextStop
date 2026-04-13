@@ -1,5 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate
+} from "react-router-dom";
+
 import Portal from "./pages/Portal";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -14,15 +20,20 @@ function App() {
     localStorage.getItem("role") || ""
   );
 
-  // DARK MODE
+  // 🔹 Auth State (memoized for safety)
+  const isLoggedIn = useMemo(
+    () => localStorage.getItem("isLoggedIn") === "true",
+    []
+  );
+
+  const role = localStorage.getItem("role");
+
+  // 🔹 Dark Mode Effect
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
+<<<<<<< HEAD
   // LISTEN FOR LOGIN CHANGES (cross-tab sync)
   useEffect(() => {
     const handleStorage = () => {
@@ -35,19 +46,33 @@ function App() {
 
   return (
     <>
+=======
+  // 🔹 Protected Route Component
+  const ProtectedRoute = ({ children, allowedRole }) => {
+    if (!isLoggedIn || role !== allowedRole) {
+      return <Navigate to={`/login?role=${allowedRole}`} replace />;
+    }
+    return children;
+  };
+
+  return (
+    <>
+      {/* 🔹 DARK MODE TOGGLE */}
+>>>>>>> 03c2b550abc1bdc4c882e2154344801524a69e8f
       <button
-        onClick={() => setDarkMode(prev => !prev)}
-        className="fixed top-4 right-4 z-[3000] 
-        bg-gray-800 text-white 
-        dark:bg-white dark:text-black 
-        px-4 py-2 rounded-lg shadow-lg 
+        onClick={() => setDarkMode((prev) => !prev)}
+        className="fixed top-4 right-4 z-[3000]
+        bg-gray-800 text-white
+        dark:bg-white dark:text-black
+        px-4 py-2 rounded-lg shadow-lg
         hover:scale-105 transition"
       >
-        {darkMode ? "☀️ Light" : "🌙 Dark"}
+        {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
       </button>
 
       <Router>
         <Routes>
+<<<<<<< HEAD
           <Route path="/" element={<Portal />} />
           <Route
             path="/login"
@@ -69,6 +94,38 @@ function App() {
                 : <Navigate to="/login?role=admin" />
             }
           />
+=======
+
+          {/* 🔹 HOME / PORTAL */}
+          <Route path="/" element={<Portal />} />
+
+          {/* 🔹 LOGIN */}
+          <Route path="/login" element={<Login />} />
+
+          {/* 🔹 STUDENT DASHBOARD */}
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute allowedRole="student">
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 🔹 ADMIN DASHBOARD */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 🔹 FALLBACK */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+
+>>>>>>> 03c2b550abc1bdc4c882e2154344801524a69e8f
         </Routes>
       </Router>
     </>
