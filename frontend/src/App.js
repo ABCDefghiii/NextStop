@@ -6,8 +6,13 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 
 function App() {
-
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    localStorage.getItem("isLoggedIn") === "true"
+  );
+  const [role, setRole] = useState(
+    localStorage.getItem("role") || ""
+  );
 
   // DARK MODE
   useEffect(() => {
@@ -18,9 +23,18 @@ function App() {
     }
   }, [darkMode]);
 
+  // LISTEN FOR LOGIN CHANGES (cross-tab sync)
+  useEffect(() => {
+    const handleStorage = () => {
+      setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
+      setRole(localStorage.getItem("role") || "");
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   return (
     <>
-      {/* DARK MODE BUTTON */}
       <button
         onClick={() => setDarkMode(prev => !prev)}
         className="fixed top-4 right-4 z-[3000] 
@@ -34,35 +48,27 @@ function App() {
 
       <Router>
         <Routes>
-
-          {/* PORTAL */}
           <Route path="/" element={<Portal />} />
-
-          {/* LOGIN */}
-          <Route path="/login" element={<Login />} />
-
-          {/* STUDENT */}
+          <Route
+            path="/login"
+            element={<Login setIsLoggedIn={setIsLoggedIn} setRole={setRole} />}
+          />
           <Route
             path="/student"
             element={
-              localStorage.getItem("isLoggedIn") === "true" &&
-                localStorage.getItem("role") === "student"
-                ? <StudentDashboard />
+              isLoggedIn && role === "student"
+                ? <StudentDashboard setIsLoggedIn={setIsLoggedIn} setRole={setRole} />
                 : <Navigate to="/login?role=student" />
             }
           />
-
-          {/* ADMIN */}
           <Route
             path="/admin"
             element={
-              localStorage.getItem("isLoggedIn") === "true" &&
-                localStorage.getItem("role") === "admin"
-                ? <AdminDashboard />
+              isLoggedIn && role === "admin"
+                ? <AdminDashboard setIsLoggedIn={setIsLoggedIn} setRole={setRole} />
                 : <Navigate to="/login?role=admin" />
             }
           />
-
         </Routes>
       </Router>
     </>

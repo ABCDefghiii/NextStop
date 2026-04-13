@@ -32,14 +32,15 @@ const busIcon = new L.Icon({
 });
 
 /* ===== FIX MAP SIZE ===== */
-function FixMapSize() {
+function FixMapSize({ tabKey }) {
     const map = useMap();
 
     useEffect(() => {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
             map.invalidateSize();
-        }, 200);
-    }, [map]);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [map, tabKey]);
 
     return null;
 }
@@ -80,8 +81,7 @@ function generateCurvedPath(start, end) {
 }
 
 /* ===== MAIN ===== */
-function MapView({ buses = [], myStop, selectedBusId, isAdmin = false }) {
-
+function MapView({ buses = [], myStop, selectedBusId, isAdmin = false, tabKey = "default" }) {
     const defaultCenter = [16.9891, 82.2475];
 
     const selectedBus = isAdmin
@@ -127,12 +127,11 @@ function MapView({ buses = [], myStop, selectedBusId, isAdmin = false }) {
                         : defaultCenter
                 }
                 zoom={13}
-                scrollWheelZoom={true}
+                scrollWheelZoom={!isAdmin}
                 className="w-full h-full"
             >
 
-                <FixMapSize />
-
+                <FixMapSize tabKey={tabKey} />
                 <TileLayer
                     attribution="&copy; OpenStreetMap contributors"
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

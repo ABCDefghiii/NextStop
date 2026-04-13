@@ -1,87 +1,168 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ setIsLoggedIn, setRole }) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const location = useLocation();
     const navigate = useNavigate();
 
-    // 📌 Get role from URL (?role=student or admin)
     const params = new URLSearchParams(location.search);
     const role = params.get("role");
-    console.log("ROLE:", role);
+
+    const isAdmin = role === "admin";
+
     const handleLogin = async () => {
+        if (!username.trim() || !password.trim()) {
+            setError("Please enter both username and password.");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
         try {
             const res = await fetch("http://localhost:5000/login", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
             });
 
             const data = await res.json();
 
             if (data.success) {
-                // ✅ Store login state
                 localStorage.setItem("isLoggedIn", "true");
-
-                // ✅ Store role from portal selection
                 localStorage.setItem("role", role);
-
-                // ✅ Redirect based on role
-                if (role === "admin") {
-                    navigate("/admin");
-                } else {
-                    navigate("/student");
-                }
+                setIsLoggedIn(true);
+                setRole(role);
+                navigate(isAdmin ? "/admin" : "/student");
             } else {
-                setError("Invalid username or password");
+                setError("Invalid username or password.");
             }
         } catch (err) {
-            setError("Server error");
+            setError("Server error. Make sure the backend is running.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
+        <div className={`min-h-screen flex items-center justify-center px-4 relative overflow-hidden
+            ${isAdmin
+                ? "bg-gradient-to-br from-gray-900 via-green-950 to-emerald-900"
+                : "bg-gradient-to-br from-gray-900 via-blue-950 to-indigo-900"
+            }`}
+        >
 
-            <div className="bg-white p-8 rounded-2xl shadow-lg w-80">
+            {/* Background glow */}
+            <div className={`absolute top-[-100px] right-[-100px] w-96 h-96 rounded-full blur-3xl
+                ${isAdmin ? "bg-green-500/10" : "bg-blue-500/10"}`}
+            />
+            <div className={`absolute bottom-[-100px] left-[-100px] w-96 h-96 rounded-full blur-3xl
+                ${isAdmin ? "bg-emerald-500/10" : "bg-indigo-500/10"}`}
+            />
 
-                {/* ✅ Dynamic Heading */}
-                <h2 className="text-2xl font-bold mb-4 text-center">
-                    {role === "admin" ? "🔐 Admin Login" : "🎓 Student Login"}
-                </h2>
+            <div className="w-full max-w-md z-10">
 
-                <input
-                    type="text"
-                    placeholder="Username"
-                    className="w-full mb-3 p-2 border rounded"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                />
-
-                <input
-                    type="password"
-                    placeholder="Password"
-                    className="w-full mb-3 p-2 border rounded"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
-
-                {error && (
-                    <p className="text-red-500 text-sm mb-2">{error}</p>
-                )}
-
+                {/* Back button */}
                 <button
-                    onClick={handleLogin}
-                    className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    onClick={() => navigate("/")}
+                    className="flex items-center gap-2 text-white/50 hover:text-white text-sm mb-8 transition-colors"
                 >
-                    Login
+                    ← Back to Portal
                 </button>
+
+                {/* Card */}
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="text-5xl mb-3">
+                            {isAdmin ? "🛠️" : "🎓"}
+                        </div>
+                        <h2 className="text-2xl font-bold text-white mb-1">
+                            {isAdmin ? "Admin Login" : "Student Login"}
+                        </h2>
+                        <p className="text-white/40 text-sm">
+                            {isAdmin
+                                ? "Access the fleet management dashboard"
+                                : "Track your bus in real-time"
+                            }
+                        </p>
+                    </div>
+
+                    {/* Inputs */}
+                    <div className="space-y-4 mb-6">
+
+                        {/* Username */}
+                        <div>
+                            <label className="text-white/60 text-xs mb-1 block">Username</label>
+                            <div className="flex items-center bg-white/10 border border-white/10 rounded-xl px-4 py-3 focus-within:border-white/30 transition-colors">
+                                <span className="text-white/40 mr-3">👤</span>
+                                <input
+                                    type="text"
+                                    placeholder={isAdmin ? "admin" : "student1"}
+                                    className="flex-1 bg-transparent text-white placeholder-white/30 outline-none text-sm"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Password */}
+                        <div>
+                            <label className="text-white/60 text-xs mb-1 block">Password</label>
+                            <div className="flex items-center bg-white/10 border border-white/10 rounded-xl px-4 py-3 focus-within:border-white/30 transition-colors">
+                                <span className="text-white/40 mr-3">🔒</span>
+                                <input
+                                    type="password"
+                                    placeholder="••••••••"
+                                    className="flex-1 bg-transparent text-white placeholder-white/30 outline-none text-sm"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                                />
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Error */}
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">
+                            <p className="text-red-400 text-sm">⚠️ {error}</p>
+                        </div>
+                    )}
+
+                    {/* Login Button */}
+                    <button
+                        onClick={handleLogin}
+                        disabled={loading}
+                        className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-200
+                            ${loading ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"}
+                            ${isAdmin
+                                ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/30"
+                                : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:shadow-blue-500/30"
+                            }`}
+                    >
+                        {loading ? "Signing in..." : `Sign in as ${isAdmin ? "Admin" : "Student"}`}
+                    </button>
+
+                    {/* Hint */}
+                    <p className="text-white/20 text-xs text-center mt-6">
+                        {isAdmin ? "admin / admin123" : "student1 / 1234"}
+                    </p>
+
+                </div>
+
+                {/* Footer */}
+                <p className="text-white/20 text-xs text-center mt-6">
+                    NextStop © 2025 — AI-Powered Bus Tracking System
+                </p>
 
             </div>
         </div>
