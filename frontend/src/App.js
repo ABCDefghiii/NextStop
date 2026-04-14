@@ -9,31 +9,22 @@ import {
 import Portal from "./pages/Portal";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import DriverDashboard from "./pages/DriverDashboard";
 import Login from "./pages/Login";
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(
-    localStorage.getItem("isLoggedIn") === "true"
+    sessionStorage.getItem("isLoggedIn") === "true"
   );
   const [role, setRole] = useState(
-    localStorage.getItem("role") || ""
+    sessionStorage.getItem("role") || ""
   );
 
   // DARK MODE
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
-
-  // CROSS-TAB SYNC
-  useEffect(() => {
-    const handleStorage = () => {
-      setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
-      setRole(localStorage.getItem("role") || "");
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
 
   return (
     <>
@@ -51,10 +42,12 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Portal />} />
+
           <Route
             path="/login"
             element={<Login setIsLoggedIn={setIsLoggedIn} setRole={setRole} />}
           />
+
           <Route
             path="/student"
             element={
@@ -63,6 +56,7 @@ function App() {
                 : <Navigate to="/login?role=student" />
             }
           />
+
           <Route
             path="/admin"
             element={
@@ -71,6 +65,16 @@ function App() {
                 : <Navigate to="/login?role=admin" />
             }
           />
+
+          <Route
+            path="/driver"
+            element={
+              isLoggedIn && role === "driver"
+                ? <DriverDashboard setIsLoggedIn={setIsLoggedIn} setRole={setRole} />
+                : <Navigate to="/login?role=driver" />
+            }
+          />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

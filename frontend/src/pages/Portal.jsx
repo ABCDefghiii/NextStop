@@ -22,7 +22,7 @@ export default function Portal() {
             </div>
 
             {/* Role Cards */}
-            <div className="flex flex-col md:flex-row gap-6 z-10 w-full max-w-2xl">
+            <div className="flex flex-col md:flex-row gap-6 z-10 w-full max-w-3xl">
 
                 {/* Student Card */}
                 <button
@@ -36,6 +36,22 @@ export default function Portal() {
                     </p>
                     <div className="flex items-center gap-2 text-blue-400 text-sm font-medium group-hover:gap-3 transition-all">
                         <span>Student Login</span>
+                        <span>→</span>
+                    </div>
+                </button>
+
+                {/* Driver Card */}
+                <button
+                    onClick={() => navigate("/login?role=driver")}
+                    className="flex-1 group bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-400/50 backdrop-blur-md rounded-2xl p-8 text-left transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20"
+                >
+                    <div className="text-4xl mb-4">🧑‍✈️</div>
+                    <h2 className="text-xl font-bold text-white mb-2">Driver</h2>
+                    <p className="text-orange-300 text-sm mb-6">
+                        Start your trip and share your live location so students can track you in real-time
+                    </p>
+                    <div className="flex items-center gap-2 text-orange-400 text-sm font-medium group-hover:gap-3 transition-all">
+                        <span>Driver Login</span>
                         <span>→</span>
                     </div>
                 </button>

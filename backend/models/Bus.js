@@ -11,7 +11,8 @@ const busSchema = new mongoose.Schema({
     pathIndex: { type: Number, default: 0 },
     eta: { type: Number, default: 0 },
     traffic: { type: String, default: "Low" },
-    confidence: { type: Number, default: 90 }
+    confidence: { type: Number, default: 90 },
+    isRealGPS: { type: Boolean, default: false } // true when driver is streaming real GPS
 });
 
 module.exports = mongoose.model("Bus", busSchema);

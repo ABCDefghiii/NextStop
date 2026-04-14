@@ -13,6 +13,9 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
     const [showChat, setShowChat] = useState(false);
     const chatEndRef = useRef(null);
 
+    const studentName = sessionStorage.getItem("studentName");
+    const preferredRoute = sessionStorage.getItem("preferredRoute");
+
     // SOCKET
     useEffect(() => {
         socket.on("busData", (data) => {
@@ -21,12 +24,13 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
         return () => socket.off("busData");
     }, []);
 
-    // AUTO SELECT
+    // AUTO SELECT preferred route bus
     useEffect(() => {
         if (buses.length > 0 && selectedBusId === null) {
-            setSelectedBusId(buses[0].id);
+            const preferred = buses.find(b => b.route === preferredRoute);
+            setSelectedBusId(preferred ? preferred.id : buses[0].id);
         }
-    }, [buses, selectedBusId]);
+    }, [buses, selectedBusId, preferredRoute]);
 
     // AUTO SCROLL CHAT
     useEffect(() => {
@@ -46,6 +50,7 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
             : null;
 
     // ETA animation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!nextBus) return;
         setLiveETA(Math.max(0, Math.round(nextBus.eta)));
@@ -53,7 +58,7 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
 
     // LOGOUT
     const handleLogout = () => {
-        localStorage.clear();
+        sessionStorage.clear();
         setIsLoggedIn(false);
         setRole(null);
     };
@@ -65,36 +70,30 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
         const msgToSend = userMessage;
         setUserMessage("");
 
-        setChatHistory(prev => [
-            ...prev,
-            { sender: "user", text: msgToSend }
-        ]);
+        setChatHistory(prev => [...prev, { sender: "user", text: msgToSend }]);
 
         try {
             const response = await fetch(
                 `http://localhost:5000/chatbot?message=${encodeURIComponent(msgToSend)}&busId=${selectedBusId}&stop=${myStop}`
             );
             const data = await response.json();
-            setChatHistory(prev => [
-                ...prev,
-                { sender: "ai", text: data.reply }
-            ]);
+            setChatHistory(prev => [...prev, { sender: "ai", text: data.reply }]);
         } catch (error) {
-            setChatHistory(prev => [
-                ...prev,
-                { sender: "ai", text: "Sorry, I couldn't connect to the server." }
-            ]);
+            setChatHistory(prev => [...prev, { sender: "ai", text: "Sorry, I couldn't connect to the server." }]);
         }
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-800 p-4 md:p-6">
 
-            {/* ===== HEADER ===== */}
+            {/* HEADER */}
             <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg shadow-md rounded-2xl p-4 mb-6 flex justify-between items-center">
-                <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-                    🚌 NextStop
-                </h1>
+                <div>
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-white">🚌 NextStop</h1>
+                    {studentName && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Welcome, {studentName}</p>
+                    )}
+                </div>
                 <div className="flex gap-3 items-center">
                     <select
                         value={selectedBusId || ""}
@@ -128,7 +127,7 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
                 </div>
             </div>
 
-            {/* ===== MAP ===== */}
+            {/* MAP */}
             <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg rounded-2xl shadow-lg p-3 mb-6 relative">
                 <MapView buses={buses} myStop={myStop} selectedBusId={selectedBusId} />
 
@@ -145,22 +144,16 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
                 <div className="absolute top-6 left-6 space-y-3">
                     <div className="bg-white/90 dark:bg-gray-800/90 p-3 rounded shadow w-44">
                         <p className="text-xs text-gray-500 dark:text-gray-400">🚍 Speed</p>
-                        <h2 className="text-green-600 dark:text-green-400 font-bold">
-                            {selectedBus?.speed} km/h
-                        </h2>
+                        <h2 className="text-green-600 dark:text-green-400 font-bold">{selectedBus?.speed} km/h</h2>
                     </div>
                     <div className="bg-white/90 dark:bg-gray-800/90 p-3 rounded shadow w-44">
                         <p className="text-xs text-gray-500 dark:text-gray-400">📏 Distance</p>
-                        <h2 className="text-blue-600 dark:text-blue-400 font-bold">
-                            {selectedBus?.distance?.toFixed(1)} km
-                        </h2>
+                        <h2 className="text-blue-600 dark:text-blue-400 font-bold">{selectedBus?.distance?.toFixed(1)} km</h2>
                     </div>
                     <div className="bg-white/90 dark:bg-gray-800/90 p-3 rounded shadow w-44">
                         <p className="text-xs text-gray-500 dark:text-gray-400">🚦 Traffic</p>
-                        <h2 className={`font-bold ${selectedBus?.traffic === "High"
-                            ? "text-red-500"
-                            : selectedBus?.traffic === "Medium"
-                                ? "text-yellow-500"
+                        <h2 className={`font-bold ${selectedBus?.traffic === "High" ? "text-red-500"
+                            : selectedBus?.traffic === "Medium" ? "text-yellow-500"
                                 : "text-green-500"
                             }`}>
                             {selectedBus?.traffic}
@@ -169,7 +162,7 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
                 </div>
             </div>
 
-            {/* ===== BOTTOM CARDS ===== */}
+            {/* BOTTOM CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white/70 dark:bg-gray-800/70 p-4 rounded-xl shadow">
                     <h3 className="font-bold mb-2 text-gray-800 dark:text-white">📊 Route Status</h3>
@@ -192,36 +185,29 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
                 </div>
             </div>
 
-            {/* ===== CHATBOT ===== */}
+            {/* CHATBOT */}
             <div className="fixed bottom-6 right-6 z-[2000]">
                 {!showChat && (
                     <button
                         onClick={() => setShowChat(true)}
-                        className="bg-gradient-to-r from-blue-500 to-indigo-600 
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600
                         text-white p-4 rounded-full shadow-xl hover:scale-110 transition"
                     >
                         💬
                     </button>
                 )}
                 {showChat && (
-                    <div className="w-80 backdrop-blur-xl bg-white/20 dark:bg-gray-800/30 
-                    border border-white/30 dark:border-gray-700/40 
+                    <div className="w-80 backdrop-blur-xl bg-white/20 dark:bg-gray-800/30
+                    border border-white/30 dark:border-gray-700/40
                     rounded-2xl shadow-2xl overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-600
                         text-white p-3 flex justify-between items-center">
                             <span className="font-semibold">🤖 Navis AI</span>
-                            <button
-                                onClick={() => setShowChat(false)}
-                                className="hover:opacity-70 transition-opacity"
-                            >
-                                ✖
-                            </button>
+                            <button onClick={() => setShowChat(false)} className="hover:opacity-70 transition-opacity">✖</button>
                         </div>
                         <div className="p-3 h-64 overflow-y-auto space-y-2">
                             {chatHistory.length === 0 && (
-                                <p className="text-gray-200 text-sm">
-                                    Hello! Ask me about your bus ETA, traffic, or route!
-                                </p>
+                                <p className="text-gray-200 text-sm">Hello! Ask me about your bus ETA, traffic, or route!</p>
                             )}
                             {chatHistory.map((msg, i) => (
                                 <div

@@ -1,0 +1,105 @@
+{
+    "intents": [
+        {
+            "tag": "greeting",
+            "patterns": [
+                "Hello",
+                "Hi",
+                "Hey",
+                "Good morning",
+                "Good evening",
+                "Howdy",
+                "What's up"
+            ]
+        },
+        {
+            "tag": "eta",
+            "patterns": [
+                "When will the bus arrive",
+                "ETA",
+                "How long",
+                "How many minutes",
+                "When is my bus coming",
+                "Bus arrival time",
+                "How far is the bus"
+            ]
+        },
+        {
+            "tag": "traffic",
+            "patterns": [
+                "How is the traffic",
+                "Traffic update",
+                "Is there traffic",
+                "Traffic condition",
+                "Road condition"
+            ]
+        },
+        {
+            "tag": "distance",
+            "patterns": [
+                "How far is the bus",
+                "Distance to bus",
+                "How many km",
+                "How close is the bus"
+            ]
+        },
+        {
+            "tag": "speed",
+            "patterns": [
+                "How fast is the bus",
+                "Bus speed",
+                "What speed",
+                "Is the bus moving fast"
+            ]
+        },
+        {
+            "tag": "route",
+            "patterns": [
+                "Which route",
+                "What route is this",
+                "Where does this bus go",
+                "Bus route",
+                "Route details"
+            ]
+        },
+        {
+            "tag": "location",
+            "patterns": [
+                "Where is the bus",
+                "Bus location",
+                "Current location",
+                "Where is bus now",
+                "Track bus"
+            ]
+        },
+        {
+            "tag": "count",
+            "patterns": [
+                "How many buses",
+                "Total buses",
+                "Number of buses",
+                "Buses running",
+                "How many buses are there"
+            ]
+        },
+        {
+            "tag": "delay",
+            "patterns": [
+                "Is the bus delayed",
+                "Any delay",
+                "Will bus be late",
+                "Is there a delay",
+                "Bus late"
+            ]
+        },
+        {
+            "tag": "fastest",
+            "patterns": [
+                "Which bus is fastest",
+                "Fastest bus",
+                "Quickest bus",
+                "Which bus arrives first"
+            ]
+        }
+    ]
+}

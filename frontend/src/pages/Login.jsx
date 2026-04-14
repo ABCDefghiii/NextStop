@@ -11,9 +11,10 @@ function Login({ setIsLoggedIn, setRole }) {
     const navigate = useNavigate();
 
     const params = new URLSearchParams(location.search);
-    const role = params.get("role");
+    const roleParam = params.get("role");
 
-    const isAdmin = role === "admin";
+    const isAdmin = roleParam === "admin";
+    const isDriver = roleParam === "driver";
 
     const handleLogin = async () => {
         if (!username.trim() || !password.trim()) {
@@ -34,11 +35,31 @@ function Login({ setIsLoggedIn, setRole }) {
             const data = await res.json();
 
             if (data.success) {
-                localStorage.setItem("isLoggedIn", "true");
-                localStorage.setItem("role", role);
+                // Use sessionStorage — per tab, won't affect other tabs
+                sessionStorage.setItem("isLoggedIn", "true");
+                sessionStorage.setItem("role", data.role);
+                sessionStorage.setItem("username", username);
+
+                // Driver specific
+                if (data.role === "driver") {
+                    sessionStorage.setItem("driverName", data.name);
+                    sessionStorage.setItem("busNumber", data.busNumber);
+                    sessionStorage.setItem("driverRoute", data.route);
+                }
+
+                // Student specific
+                if (data.role === "student") {
+                    sessionStorage.setItem("studentName", data.name);
+                    sessionStorage.setItem("preferredRoute", data.preferredRoute);
+                }
+
                 setIsLoggedIn(true);
-                setRole(role);
-                navigate(isAdmin ? "/admin" : "/student");
+                setRole(data.role);
+
+                if (data.role === "admin") navigate("/admin");
+                else if (data.role === "driver") navigate("/driver");
+                else navigate("/student");
+
             } else {
                 setError("Invalid username or password.");
             }
@@ -49,25 +70,46 @@ function Login({ setIsLoggedIn, setRole }) {
         }
     };
 
-    return (
-        <div className={`min-h-screen flex items-center justify-center px-4 relative overflow-hidden
-            ${isAdmin
-                ? "bg-gradient-to-br from-gray-900 via-green-950 to-emerald-900"
-                : "bg-gradient-to-br from-gray-900 via-blue-950 to-indigo-900"
-            }`}
-        >
+    const getTheme = () => {
+        if (isAdmin) return {
+            bg: "bg-gradient-to-br from-gray-900 via-green-950 to-emerald-900",
+            glow1: "bg-green-500/10",
+            glow2: "bg-emerald-500/10",
+            btn: "bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/30",
+            icon: "🛠️",
+            title: "Admin Login",
+            subtitle: "Access the fleet management dashboard"
+        };
+        if (isDriver) return {
+            bg: "bg-gradient-to-br from-gray-900 via-orange-950 to-amber-900",
+            glow1: "bg-orange-500/10",
+            glow2: "bg-amber-500/10",
+            btn: "bg-gradient-to-r from-orange-500 to-amber-600 hover:shadow-orange-500/30",
+            icon: "🧑‍✈️",
+            title: "Driver Login",
+            subtitle: "Start your trip and share your location"
+        };
+        return {
+            bg: "bg-gradient-to-br from-gray-900 via-blue-950 to-indigo-900",
+            glow1: "bg-blue-500/10",
+            glow2: "bg-indigo-500/10",
+            btn: "bg-gradient-to-r from-blue-500 to-indigo-600 hover:shadow-blue-500/30",
+            icon: "🎓",
+            title: "Student Login",
+            subtitle: "Track your bus in real-time"
+        };
+    };
 
-            {/* Background glow */}
-            <div className={`absolute top-[-100px] right-[-100px] w-96 h-96 rounded-full blur-3xl
-                ${isAdmin ? "bg-green-500/10" : "bg-blue-500/10"}`}
-            />
-            <div className={`absolute bottom-[-100px] left-[-100px] w-96 h-96 rounded-full blur-3xl
-                ${isAdmin ? "bg-emerald-500/10" : "bg-indigo-500/10"}`}
-            />
+    const theme = getTheme();
+
+    return (
+        <div className={`min-h-screen flex items-center justify-center px-4 relative overflow-hidden ${theme.bg}`}>
+
+            <div className={`absolute top-[-100px] right-[-100px] w-96 h-96 rounded-full blur-3xl ${theme.glow1}`} />
+            <div className={`absolute bottom-[-100px] left-[-100px] w-96 h-96 rounded-full blur-3xl ${theme.glow2}`} />
 
             <div className="w-full max-w-md z-10">
 
-                {/* Back button */}
                 <button
                     onClick={() => navigate("/")}
                     className="flex items-center gap-2 text-white/50 hover:text-white text-sm mb-8 transition-colors"
@@ -75,36 +117,22 @@ function Login({ setIsLoggedIn, setRole }) {
                     ← Back to Portal
                 </button>
 
-                {/* Card */}
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
 
-                    {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="text-5xl mb-3">
-                            {isAdmin ? "🛠️" : "🎓"}
-                        </div>
-                        <h2 className="text-2xl font-bold text-white mb-1">
-                            {isAdmin ? "Admin Login" : "Student Login"}
-                        </h2>
-                        <p className="text-white/40 text-sm">
-                            {isAdmin
-                                ? "Access the fleet management dashboard"
-                                : "Track your bus in real-time"
-                            }
-                        </p>
+                        <div className="text-5xl mb-3">{theme.icon}</div>
+                        <h2 className="text-2xl font-bold text-white mb-1">{theme.title}</h2>
+                        <p className="text-white/40 text-sm">{theme.subtitle}</p>
                     </div>
 
-                    {/* Inputs */}
                     <div className="space-y-4 mb-6">
-
-                        {/* Username */}
                         <div>
                             <label className="text-white/60 text-xs mb-1 block">Username</label>
                             <div className="flex items-center bg-white/10 border border-white/10 rounded-xl px-4 py-3 focus-within:border-white/30 transition-colors">
                                 <span className="text-white/40 mr-3">👤</span>
                                 <input
                                     type="text"
-                                    placeholder={isAdmin ? "admin" : "student1"}
+                                    placeholder="Enter your username"
                                     className="flex-1 bg-transparent text-white placeholder-white/30 outline-none text-sm"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
@@ -113,7 +141,6 @@ function Login({ setIsLoggedIn, setRole }) {
                             </div>
                         </div>
 
-                        {/* Password */}
                         <div>
                             <label className="text-white/60 text-xs mb-1 block">Password</label>
                             <div className="flex items-center bg-white/10 border border-white/10 rounded-xl px-4 py-3 focus-within:border-white/30 transition-colors">
@@ -128,38 +155,26 @@ function Login({ setIsLoggedIn, setRole }) {
                                 />
                             </div>
                         </div>
-
                     </div>
 
-                    {/* Error */}
                     {error && (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">
                             <p className="text-red-400 text-sm">⚠️ {error}</p>
                         </div>
                     )}
 
-                    {/* Login Button */}
                     <button
                         onClick={handleLogin}
                         disabled={loading}
                         className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-200
                             ${loading ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"}
-                            ${isAdmin
-                                ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/30"
-                                : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:shadow-blue-500/30"
-                            }`}
+                            ${theme.btn}`}
                     >
-                        {loading ? "Signing in..." : `Sign in as ${isAdmin ? "Admin" : "Student"}`}
+                        {loading ? "Signing in..." : "Sign in"}
                     </button>
-
-                    {/* Hint */}
-                    <p className="text-white/20 text-xs text-center mt-6">
-                        {isAdmin ? "admin / admin123" : "student1 / 1234"}
-                    </p>
 
                 </div>
 
-                {/* Footer */}
                 <p className="text-white/20 text-xs text-center mt-6">
                     NextStop © 2025 — AI-Powered Bus Tracking System
                 </p>

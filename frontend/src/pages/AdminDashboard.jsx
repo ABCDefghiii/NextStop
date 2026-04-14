@@ -17,6 +17,8 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
     const [alerts, setAlerts] = useState([]);
     const [activeTab, setActiveTab] = useState("Dashboard");
     const [mapBuses, setMapBuses] = useState([]);
+    const [drivers, setDrivers] = useState([]);
+    const [students, setStudents] = useState([]);
 
     // SOCKET
     useEffect(() => {
@@ -32,7 +34,27 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
         };
     }, []);
 
-    // UPDATE MAP EVERY 5 SECONDS — prevents blinking
+    // FETCH DRIVERS AND STUDENTS
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const [driversRes, studentsRes] = await Promise.all([
+                    fetch("http://localhost:5000/api/drivers"),
+                    fetch("http://localhost:5000/api/students")
+                ]);
+                setDrivers(await driversRes.json());
+                setStudents(await studentsRes.json());
+            } catch (err) {
+                console.error("Failed to fetch users:", err);
+            }
+        };
+        fetchUsers();
+        const interval = setInterval(fetchUsers, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // UPDATE MAP EVERY 5 SECONDS
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (buses.length > 0 && mapBuses.length === 0) {
             setMapBuses([...buses]);
@@ -45,7 +67,7 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
 
     // LOGOUT
     const handleLogout = () => {
-        localStorage.clear();
+        sessionStorage.clear();
         if (setIsLoggedIn) setIsLoggedIn(false);
         if (setRole) setRole(null);
     };
@@ -60,15 +82,11 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
         return Math.max(score, 0);
     };
 
-    const avgETA =
-        buses.length > 0
-            ? Math.round(buses.reduce((sum, b) => sum + (b.eta || 0), 0) / buses.length)
-            : 0;
+    const avgETA = buses.length > 0
+        ? Math.round(buses.reduce((sum, b) => sum + (b.eta || 0), 0) / buses.length) : 0;
 
-    const avgConfidence =
-        buses.length > 0
-            ? Math.round(buses.reduce((sum, b) => sum + (b.confidence || 0), 0) / buses.length)
-            : 0;
+    const avgConfidence = buses.length > 0
+        ? Math.round(buses.reduce((sum, b) => sum + (b.confidence || 0), 0) / buses.length) : 0;
 
     const trafficCounts = { Low: 0, Medium: 0, High: 0 };
     buses.forEach(b => { if (trafficCounts[b.traffic] !== undefined) trafficCounts[b.traffic]++; });
@@ -80,34 +98,34 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
     const healthColor = (h) =>
         h > 70 ? "bg-green-500" : h > 40 ? "bg-yellow-500" : "bg-red-500";
 
-    const tabs = ["Dashboard", "Fleet", "Routes", "Analytics"];
+    const getDriverForBus = (busId) =>
+        drivers.find(d => d.busNumber === busId && d.isActive);
+
+    const tabs = ["Dashboard", "Fleet", "Drivers", "Routes", "Analytics"];
 
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-gray-900 dark:to-gray-800">
 
-            {/* ===== SIDEBAR ===== */}
+            {/* SIDEBAR */}
             <div className="w-64 bg-gradient-to-b from-blue-600 to-indigo-700 dark:from-gray-900 dark:to-gray-800 text-white p-6 shadow-xl flex flex-col">
                 <h2 className="text-xl font-bold mb-8">🚌 NextStop</h2>
-
                 <div className="space-y-2 flex-1">
                     {tabs.map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`w-full text-left px-4 py-2 rounded-lg transition-colors duration-200 ${activeTab === tab
-                                    ? "bg-white/30 font-semibold"
-                                    : "hover:bg-white/10"
+                            className={`w-full text-left px-4 py-2 rounded-lg transition-colors duration-200 ${activeTab === tab ? "bg-white/30 font-semibold" : "hover:bg-white/10"
                                 }`}
                         >
                             {tab === "Dashboard" && "📊 "}
                             {tab === "Fleet" && "🚍 "}
+                            {tab === "Drivers" && "🧑‍✈️ "}
                             {tab === "Routes" && "🛣 "}
                             {tab === "Analytics" && "📈 "}
                             {tab}
                         </button>
                     ))}
                 </div>
-
                 <button
                     onClick={handleLogout}
                     className="mt-8 bg-white/10 hover:bg-red-500/80 text-white px-4 py-2 rounded-lg transition-colors duration-200 text-left"
@@ -116,10 +134,10 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                 </button>
             </div>
 
-            {/* ===== MAIN ===== */}
+            {/* MAIN */}
             <div className="flex-1 p-6 overflow-y-auto">
 
-                {/* KPI CARDS — always visible */}
+                {/* KPI CARDS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl shadow-xl p-6">
                         <p className="text-sm opacity-80">🚍 Fleet</p>
@@ -139,16 +157,14 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                     </div>
                 </div>
 
-                {/* ===== DASHBOARD TAB ===== */}
+                {/* DASHBOARD TAB */}
                 {activeTab === "Dashboard" && (
                     <>
-                        {/* MAP */}
                         <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg rounded-2xl shadow-xl p-4 mb-6">
                             <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">🗺 Fleet Tracking</h3>
                             <MapView buses={mapBuses} isAdmin={true} tabKey={activeTab} />
                         </div>
 
-                        {/* SYSTEM OVERVIEW */}
                         <SystemOverview
                             buses={buses}
                             calculateHealth={calculateHealth}
@@ -158,7 +174,6 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                             trafficLevel={trafficLevel}
                         />
 
-                        {/* ALERTS */}
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6 mt-6">
                             <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">🚨 Incident Feed</h3>
                             {alerts.length === 0 ? (
@@ -166,10 +181,7 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                             ) : (
                                 <div className="space-y-2">
                                     {alerts.map((a) => (
-                                        <div
-                                            key={a.id}
-                                            className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3"
-                                        >
+                                        <div key={a.id} className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
                                             <span>⚠️</span>
                                             <div>
                                                 <p className="font-medium text-red-700 dark:text-red-300">{a.route} — delay reported</p>
@@ -181,18 +193,15 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                             )}
                         </div>
 
-                        {/* CHART */}
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6 mt-6">
                             <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-white">📈 ETA Analytics</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                                ML-predicted ETA per bus across simulation ticks.
-                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">ML-predicted ETA per bus across simulation ticks.</p>
                             <LiveChart history={etaHistory} />
                         </div>
                     </>
                 )}
 
-                {/* ===== FLEET TAB ===== */}
+                {/* FLEET TAB */}
                 {activeTab === "Fleet" && (
                     <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6">
                         <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">🚍 Fleet Overview</h3>
@@ -200,38 +209,43 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
-                                        <th className="pb-3 pr-4">Bus ID</th>
+                                        <th className="pb-3 pr-4">Bus</th>
                                         <th className="pb-3 pr-4">Route</th>
+                                        <th className="pb-3 pr-4">Driver</th>
                                         <th className="pb-3 pr-4">Speed</th>
                                         <th className="pb-3 pr-4">Distance</th>
                                         <th className="pb-3 pr-4">ETA</th>
                                         <th className="pb-3 pr-4">Traffic</th>
-                                        <th className="pb-3 pr-4">Confidence</th>
+                                        <th className="pb-3 pr-4">GPS</th>
                                         <th className="pb-3">Health</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {buses.map((bus) => {
                                         const health = calculateHealth(bus);
+                                        const activeDriver = getDriverForBus(bus.id);
                                         return (
-                                            <tr
-                                                key={bus.id}
-                                                className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                            >
+                                            <tr key={bus.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                 <td className="py-3 pr-4 font-medium text-gray-800 dark:text-white">Bus {bus.id}</td>
                                                 <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{bus.route}</td>
+                                                <td className="py-3 pr-4">
+                                                    {activeDriver
+                                                        ? <span className="text-green-600 dark:text-green-400 font-medium">🟢 {activeDriver.name}</span>
+                                                        : <span className="text-gray-400">⚫ No driver</span>}
+                                                </td>
                                                 <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{bus.speed} km/h</td>
                                                 <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{bus.distance?.toFixed(1)} km</td>
-                                                <td className="py-3 pr-4 font-medium text-blue-600 dark:text-blue-400">{bus.eta} mins</td>
+                                                <td className="py-3 pr-4 font-medium text-blue-600 dark:text-blue-400">{Math.max(0, Math.round(bus.eta || 0))} mins</td>
                                                 <td className={`py-3 pr-4 font-medium ${trafficColor(bus.traffic)}`}>{bus.traffic}</td>
-                                                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{bus.confidence || 90}%</td>
+                                                <td className="py-3 pr-4">
+                                                    {bus.isRealGPS
+                                                        ? <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full">📡 Live</span>
+                                                        : <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs px-2 py-1 rounded-full">🔄 Simulated</span>}
+                                                </td>
                                                 <td className="py-3">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-20 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                                            <div
-                                                                className={`h-2 rounded-full ${healthColor(health)}`}
-                                                                style={{ width: `${health}%` }}
-                                                            />
+                                                            <div className={`h-2 rounded-full ${healthColor(health)}`} style={{ width: `${health}%` }} />
                                                         </div>
                                                         <span className="text-xs text-gray-500">{health}</span>
                                                     </div>
@@ -245,15 +259,87 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                     </div>
                 )}
 
-                {/* ===== ROUTES TAB ===== */}
+                {/* DRIVERS TAB */}
+                {activeTab === "Drivers" && (
+                    <div className="space-y-4">
+                        <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6">
+                            <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">🧑‍✈️ Driver Directory</h3>
+                            <div className="flex gap-4 mb-6">
+                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3">
+                                    <p className="text-xs text-green-600 dark:text-green-400">Active Now</p>
+                                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">{drivers.filter(d => d.isActive).length}</p>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Total Drivers</p>
+                                    <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{drivers.length}</p>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
+                                            <th className="pb-3 pr-4">Name</th>
+                                            <th className="pb-3 pr-4">Phone</th>
+                                            <th className="pb-3 pr-4">Bus</th>
+                                            <th className="pb-3 pr-4">Route</th>
+                                            <th className="pb-3">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {drivers.map((driver) => (
+                                            <tr key={driver._id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                <td className="py-3 pr-4 font-medium text-gray-800 dark:text-white">{driver.name}</td>
+                                                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{driver.phone}</td>
+                                                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">Bus {driver.busNumber}</td>
+                                                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{driver.route}</td>
+                                                <td className="py-3">
+                                                    {driver.isActive
+                                                        ? <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 text-xs px-3 py-1 rounded-full font-medium">🟢 On Trip</span>
+                                                        : <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">⚫ Offline</span>}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6">
+                            <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">🎓 Student Directory</h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
+                                            <th className="pb-3 pr-4">Name</th>
+                                            <th className="pb-3 pr-4">Phone</th>
+                                            <th className="pb-3">Preferred Route</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {students.map((student) => (
+                                            <tr key={student._id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                <td className="py-3 pr-4 font-medium text-gray-800 dark:text-white">{student.name}</td>
+                                                <td className="py-3 pr-4 text-gray-600 dark:text-gray-300">{student.phone}</td>
+                                                <td className="py-3 text-gray-600 dark:text-gray-300">{student.preferredRoute}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ROUTES TAB */}
                 {activeTab === "Routes" && (
                     <div className="space-y-6">
                         {Object.entries(ROUTES).map(([key, name]) => {
                             const routeBuses = buses.filter(b => b.routeKey === key);
                             const avgRouteETA = routeBuses.length > 0
-                                ? Math.round(routeBuses.reduce((s, b) => s + (b.eta || 0), 0) / routeBuses.length)
-                                : 0;
+                                ? Math.round(routeBuses.reduce((s, b) => s + (b.eta || 0), 0) / routeBuses.length) : 0;
                             const routeTraffic = routeBuses[0]?.traffic || "Unknown";
+                            const routeDrivers = drivers.filter(d => d.routeKey === key);
+                            const activeRouteDrivers = routeDrivers.filter(d => d.isActive);
 
                             return (
                                 <div key={key} className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6">
@@ -263,21 +349,23 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                                             <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs px-3 py-1 rounded-full">
                                                 {routeBuses.length} bus{routeBuses.length !== 1 ? "es" : ""}
                                             </span>
-                                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${routeTraffic === "High"
-                                                    ? "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300"
-                                                    : routeTraffic === "Medium"
-                                                        ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-300"
-                                                        : "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-300"
+                                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${routeTraffic === "High" ? "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300"
+                                                : routeTraffic === "Medium" ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-300"
+                                                    : "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-300"
                                                 }`}>
                                                 {routeTraffic} traffic
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div className="grid grid-cols-3 gap-4 mb-4">
                                         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
                                             <p className="text-xs text-gray-500 dark:text-gray-400">Avg ETA</p>
                                             <p className="text-xl font-bold text-gray-800 dark:text-white">{avgRouteETA} mins</p>
+                                        </div>
+                                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">Active Drivers</p>
+                                            <p className="text-xl font-bold text-green-600">{activeRouteDrivers.length} / {routeDrivers.length}</p>
                                         </div>
                                         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
                                             <p className="text-xs text-gray-500 dark:text-gray-400">Active Buses</p>
@@ -286,17 +374,18 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                                     </div>
 
                                     <div className="space-y-2">
-                                        {routeBuses.map(bus => (
-                                            <div
-                                                key={bus.id}
-                                                className="flex justify-between items-center text-sm bg-gray-50 dark:bg-gray-700/30 rounded-lg px-4 py-2"
-                                            >
-                                                <span className="font-medium text-gray-700 dark:text-gray-300">Bus {bus.id}</span>
-                                                <span className="text-blue-600 dark:text-blue-400">{bus.eta} mins ETA</span>
-                                                <span className="text-gray-500 dark:text-gray-400">{bus.speed} km/h</span>
-                                                <span className="text-gray-500 dark:text-gray-400">{bus.distance?.toFixed(1)} km</span>
-                                            </div>
-                                        ))}
+                                        {routeBuses.map(bus => {
+                                            const activeDriver = getDriverForBus(bus.id);
+                                            return (
+                                                <div key={bus.id} className="flex justify-between items-center text-sm bg-gray-50 dark:bg-gray-700/30 rounded-lg px-4 py-2">
+                                                    <span className="font-medium text-gray-700 dark:text-gray-300">Bus {bus.id}</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">{activeDriver ? `🟢 ${activeDriver.name}` : "⚫ No driver"}</span>
+                                                    <span className="text-blue-600 dark:text-blue-400">{Math.max(0, Math.round(bus.eta || 0))} mins ETA</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">{bus.distance?.toFixed(1)} km</span>
+                                                    {bus.isRealGPS && <span className="text-green-500 text-xs">📡 Live</span>}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             );
@@ -304,7 +393,7 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                     </div>
                 )}
 
-                {/* ===== ANALYTICS TAB ===== */}
+                {/* ANALYTICS TAB */}
                 {activeTab === "Analytics" && (
                     <div className="space-y-6">
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-6">
@@ -318,16 +407,16 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             {buses.map((bus) => {
                                 const busHistory = etaHistory[bus.id] || [];
-                                const avg = busHistory.length > 0
-                                    ? Math.round(busHistory.reduce((a, b) => a + b, 0) / busHistory.length)
-                                    : 0;
+                                const avg = busHistory.length > 0 ? Math.round(busHistory.reduce((a, b) => a + b, 0) / busHistory.length) : 0;
                                 const min = busHistory.length > 0 ? Math.min(...busHistory) : 0;
                                 const max = busHistory.length > 0 ? Math.max(...busHistory) : 0;
+                                const activeDriver = getDriverForBus(bus.id);
 
                                 return (
                                     <div key={bus.id} className="bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl p-4">
                                         <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Bus {bus.id}</p>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">{bus.route}</p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{bus.route}</p>
+                                        {activeDriver && <p className="text-xs text-green-500 mb-3">🟢 {activeDriver.name}</p>}
                                         <div className="space-y-1 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500 dark:text-gray-400">Avg</span>
