@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import MapView from "../components/MapView";
 import LiveChart from "../components/LiveChart";
 import SystemOverview from "../components/SystemOverview";
+import socket from "../socket";  // ✅ this is correct
 import CONFIG from "../config";
 
 const ROUTES = {
