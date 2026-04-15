@@ -13,14 +13,34 @@ const ETAHistory = require("./models/ETAHistory");
 const User = require("./models/User");
 
 const app = express();
-app.use(cors());
+
+// ----------------------
+// CORS — Express Routes
+// ----------------------
+app.use(cors({
+    origin: [
+        "https://next-stop-pi.vercel.app",
+        "http://localhost:3000"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+}));
+
 app.use(express.json());
 
 const server = http.createServer(app);
+
+// ----------------------
+// CORS — Socket.IO
+// ----------------------
 const io = new Server(server, {
     cors: {
-        origin: "https://next-stop-pi.vercel.app",
-        methods: ["GET", "POST"]
+        origin: [
+            "https://next-stop-pi.vercel.app",
+            "http://localhost:3000"
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
@@ -115,7 +135,7 @@ async function seedData() {
 }
 
 // ----------------------
-// LOGIN — uses MongoDB
+// LOGIN
 // ----------------------
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
@@ -164,7 +184,6 @@ app.post("/driver/endtrip", async (req, res) => {
     const { username } = req.body;
     try {
         await User.findOneAndUpdate({ username }, { $set: { isActive: false } });
-        // Reset bus back to simulation mode
         const driver = await User.findOne({ username });
         if (driver) {
             await Bus.findOneAndUpdate(
@@ -243,20 +262,37 @@ function calculateConfidence(history) {
     return Math.max(50, Math.min(100, Math.round(100 - stdDev * 5)));
 }
 
-
 // ----------------------
 // ML PREDICTION
 // ----------------------
 function predictETAs(busArray, callback) {
-    const python = spawn("python", ["predict_eta.py"]);
+    // Use python3 first, fall back to python
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
+    const python = spawn(pythonCmd, ["predict_eta.py"], {
+        cwd: __dirname  // ← ensures correct working directory on Render
+    });
+
+    let result = "";
+    let errorOutput = "";
+
     python.stdin.write(JSON.stringify(busArray));
     python.stdin.end();
 
-    let result = "";
     python.stdout.on("data", (data) => { result += data.toString(); });
-    python.stderr.on("data", (err) => { console.error("Python error:", err.toString()); });
+    python.stderr.on("data", (err) => {
+        errorOutput += err.toString();
+        console.error("Python error:", err.toString());
+    });
 
-    python.on("close", () => {
+    python.on("close", (code) => {
+        if (code !== 0 || !result.trim()) {
+            // Fallback to math-based ETA if Python fails
+            console.warn("Python ML failed, using math fallback. Error:", errorOutput);
+            busArray.forEach((bus) => {
+                bus.eta = Math.round((bus.distance / bus.speed) * 60);
+            });
+            return callback(busArray);
+        }
         try {
             const predictions = JSON.parse(result);
             busArray.forEach((bus, i) => { bus.eta = predictions[i] || 5; });
@@ -267,8 +303,16 @@ function predictETAs(busArray, callback) {
         }
         callback(busArray);
     });
-}
 
+    python.on("error", (err) => {
+        // Python not found at all — use math fallback silently
+        console.warn("Python spawn error, using math fallback:", err.message);
+        busArray.forEach((bus) => {
+            bus.eta = Math.round((bus.distance / bus.speed) * 60);
+        });
+        callback(busArray);
+    });
+}
 
 // ----------------------
 // SIMULATION
@@ -281,9 +325,7 @@ function startSimulation() {
         try {
             let busArray = await Bus.find().lean();
 
-            // ----------------------
             // UPDATE BUS MOVEMENT
-            // ----------------------
             busArray = busArray.map(bus => {
                 if (bus.isRealGPS) {
                     bus.traffic = getTrafficLevel();
@@ -315,9 +357,7 @@ function startSimulation() {
                 return bus;
             });
 
-            // ----------------------
-            // ✅ OPTIMIZED ML CALL
-            // ----------------------
+            // OPTIMIZED ML CALL — only every 15 seconds
             let updatedBuses = busArray;
 
             if (Date.now() - lastMLCall > 15000) {
@@ -335,9 +375,7 @@ function startSimulation() {
                 });
             }
 
-            // ----------------------
             // SAVE + CONFIDENCE
-            // ----------------------
             const etaHistoryLog = {};
 
             for (const bus of updatedBuses) {
@@ -372,9 +410,7 @@ function startSimulation() {
                 etaHistoryLog[bus.id] = etaDoc.history;
             }
 
-            // ----------------------
             // EMIT DATA
-            // ----------------------
             io.emit("busData", updatedBuses);
             io.emit("etaHistory", etaHistoryLog);
 
@@ -390,8 +426,12 @@ function startSimulation() {
 // ----------------------
 io.on("connection", async (socket) => {
     console.log("Client connected:", socket.id);
-    const buses = await Bus.find().lean();
-    socket.emit("busData", buses);
+    try {
+        const buses = await Bus.find().lean();
+        socket.emit("busData", buses);
+    } catch (err) {
+        console.error("Socket connection error:", err.message);
+    }
     socket.on("disconnect", () => {
         console.log("Client disconnected:", socket.id);
     });
@@ -409,13 +449,17 @@ app.get("/chatbot", async (req, res) => {
     try {
         const flaskURL = process.env.FLASK_URL;
 
+        if (!flaskURL) {
+            return res.json({ reply: "Chatbot service not configured." });
+        }
+
         const nlpRes = await fetch(
             `${flaskURL}/predict?message=${encodeURIComponent(message)}`
         );
 
         const { intent } = await nlpRes.json();
 
-        let reply = "I didn't understand that.";
+        let reply = "I didn't understand that. Try asking about ETA, traffic, speed, or route!";
 
         if (intent === "greeting") reply = "Hello! I'm Navis AI. How can I help you today?";
         else if (intent === "eta") reply = bus ? `Your bus will arrive in ${bus.eta} minutes.` : "Please select a bus first.";
@@ -443,6 +487,15 @@ app.get("/chatbot", async (req, res) => {
     }
 });
 
+// ----------------------
+// HEALTH CHECK
+// ----------------------
+app.get("/", (req, res) => {
+    res.json({ status: "NextStop backend is running!" });
+});
+
+// ----------------------
+// START SERVER
 // ----------------------
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
