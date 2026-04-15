@@ -377,7 +377,12 @@ app.get("/chatbot", async (req, res) => {
     const bus = busId ? await Bus.findOne({ id: Number(busId) }).lean() : null;
 
     try {
-        const nlpRes = await fetch(`http://localhost:5001/predict?message=${encodeURIComponent(message)}`);
+        const flaskURL = process.env.FLASK_URL;
+
+        const nlpRes = await fetch(
+            `${flaskURL}/predict?message=${encodeURIComponent(message)}`
+        );
+
         const { intent } = await nlpRes.json();
 
         let reply = "I didn't understand that.";
