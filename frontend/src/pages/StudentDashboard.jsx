@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import MapView from "../components/MapView";
 import socket from "../socket";
+import CONFIG from "../config";
 
 function StudentDashboard({ setIsLoggedIn, setRole }) {
 
@@ -73,8 +74,10 @@ function StudentDashboard({ setIsLoggedIn, setRole }) {
         setChatHistory(prev => [...prev, { sender: "user", text: msgToSend }]);
 
         try {
+
+            // Replace fetch URL:
             const response = await fetch(
-                `http://localhost:5000/chatbot?message=${encodeURIComponent(msgToSend)}&busId=${selectedBusId}&stop=${myStop}`
+                `${CONFIG.BACKEND_URL}/chatbot?message=${encodeURIComponent(msgToSend)}&busId=${selectedBusId}&stop=${myStop}`
             );
             const data = await response.json();
             setChatHistory(prev => [...prev, { sender: "ai", text: data.reply }]);

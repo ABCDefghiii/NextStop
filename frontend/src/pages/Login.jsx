@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import CONFIG from "../config";
 
 function Login({ setIsLoggedIn, setRole }) {
     const [username, setUsername] = useState("");
@@ -26,7 +27,7 @@ function Login({ setIsLoggedIn, setRole }) {
         setError("");
 
         try {
-            const res = await fetch("http://localhost:5000/login", {
+            const res = await fetch(`${CONFIG.BACKEND_URL}/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),

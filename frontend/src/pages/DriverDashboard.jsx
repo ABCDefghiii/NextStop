@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import CONFIG from "../config";
 
 function DriverDashboard({ setIsLoggedIn, setRole }) {
 
@@ -18,7 +19,7 @@ function DriverDashboard({ setIsLoggedIn, setRole }) {
 
     const sendLocation = async (lat, lng) => {
         try {
-            await fetch("http://localhost:5000/driver/location", {
+            await fetch(`${CONFIG.BACKEND_URL}/driver/endtrip`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

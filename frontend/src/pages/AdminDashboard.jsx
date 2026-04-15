@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import MapView from "../components/MapView";
 import LiveChart from "../components/LiveChart";
 import SystemOverview from "../components/SystemOverview";
-import socket from "../socket";
+import CONFIG from "../config";
 
 const ROUTES = {
     route1: "Yanam Route",
@@ -39,8 +39,8 @@ function AdminDashboard({ setIsLoggedIn, setRole }) {
         const fetchUsers = async () => {
             try {
                 const [driversRes, studentsRes] = await Promise.all([
-                    fetch("http://localhost:5000/api/drivers"),
-                    fetch("http://localhost:5000/api/students")
+                    fetch(`${CONFIG.BACKEND_URL}/api/drivers`),
+                    fetch(`${CONFIG.BACKEND_URL}/api/students`)
                 ]);
                 setDrivers(await driversRes.json());
                 setStudents(await studentsRes.json());
