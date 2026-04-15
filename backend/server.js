@@ -243,6 +243,7 @@ function calculateConfidence(history) {
     return Math.max(50, Math.min(100, Math.round(100 - stdDev * 5)));
 }
 
+
 // ----------------------
 // ML PREDICTION
 // ----------------------
@@ -268,23 +269,28 @@ function predictETAs(busArray, callback) {
     });
 }
 
+
 // ----------------------
 // SIMULATION
 // ----------------------
 function startSimulation() {
+    let lastMLCall = 0;
+    let lastPredictions = [];
+
     setInterval(async () => {
         try {
             let busArray = await Bus.find().lean();
 
+            // ----------------------
+            // UPDATE BUS MOVEMENT
+            // ----------------------
             busArray = busArray.map(bus => {
-                // Real GPS bus — only update traffic and distance, NOT lat/lng
                 if (bus.isRealGPS) {
                     bus.traffic = getTrafficLevel();
                     bus.distance = haversineDistance(bus.lat, bus.lng, COLLEGE_LAT, COLLEGE_LNG);
                     return bus;
                 }
 
-                // Simulated bus — move along path
                 const route = routes[bus.routeKey]?.path;
                 if (!route) return bus;
 
@@ -298,61 +304,85 @@ function startSimulation() {
                     Math.pow(bus.lat - nextPoint.lat, 2) +
                     Math.pow(bus.lng - nextPoint.lng, 2)
                 );
+
                 if (dist < 0.0005) {
                     bus.pathIndex = (bus.pathIndex + 1) % route.length;
                 }
 
                 bus.traffic = getTrafficLevel();
                 bus.distance = haversineDistance(bus.lat, bus.lng, COLLEGE_LAT, COLLEGE_LNG);
+
                 return bus;
             });
 
-            predictETAs(busArray, async (updatedBuses) => {
-                const etaHistoryLog = {};
+            // ----------------------
+            // ✅ OPTIMIZED ML CALL
+            // ----------------------
+            let updatedBuses = busArray;
 
-                for (const bus of updatedBuses) {
-                    const etaDoc = await ETAHistory.findOneAndUpdate(
-                        { busId: bus.id },
-                        { $push: { history: { $each: [bus.eta], $slice: -100 } } },
-                        { upsert: true, returnDocument: "after" }
-                    );
-                    bus.confidence = calculateConfidence(etaDoc.history);
+            if (Date.now() - lastMLCall > 15000) {
+                await new Promise((resolve) => {
+                    predictETAs(busArray, (result) => {
+                        updatedBuses = result;
+                        lastPredictions = result.map(b => b.eta);
+                        lastMLCall = Date.now();
+                        resolve();
+                    });
+                });
+            } else {
+                updatedBuses.forEach((bus, i) => {
+                    bus.eta = lastPredictions[i] || Math.round((bus.distance / bus.speed) * 60);
+                });
+            }
 
-                    // ── KEY FIX: don't overwrite real GPS lat/lng ──
-                    const updateFields = {
-                        traffic: bus.traffic,
-                        distance: bus.distance,
-                        eta: bus.eta,
-                        confidence: bus.confidence,
-                        speed: bus.speed,
-                        isRealGPS: bus.isRealGPS || false,
-                    };
+            // ----------------------
+            // SAVE + CONFIDENCE
+            // ----------------------
+            const etaHistoryLog = {};
 
-                    // Only update lat/lng/pathIndex for simulated buses
-                    if (!bus.isRealGPS) {
-                        updateFields.lat = bus.lat;
-                        updateFields.lng = bus.lng;
-                        updateFields.pathIndex = bus.pathIndex;
-                    }
+            for (const bus of updatedBuses) {
+                const etaDoc = await ETAHistory.findOneAndUpdate(
+                    { busId: bus.id },
+                    { $push: { history: { $each: [bus.eta], $slice: -100 } } },
+                    { upsert: true, returnDocument: "after" }
+                );
 
-                    await Bus.findOneAndUpdate(
-                        { id: bus.id },
-                        { $set: updateFields },
-                        { returnDocument: "after" }
-                    );
+                bus.confidence = calculateConfidence(etaDoc.history);
 
-                    etaHistoryLog[bus.id] = etaDoc.history;
+                const updateFields = {
+                    traffic: bus.traffic,
+                    distance: bus.distance,
+                    eta: bus.eta,
+                    confidence: bus.confidence,
+                    speed: bus.speed,
+                    isRealGPS: bus.isRealGPS || false,
+                };
+
+                if (!bus.isRealGPS) {
+                    updateFields.lat = bus.lat;
+                    updateFields.lng = bus.lng;
+                    updateFields.pathIndex = bus.pathIndex;
                 }
 
-                io.emit("busData", updatedBuses);
-                io.emit("etaHistory", etaHistoryLog);
-            });
+                await Bus.findOneAndUpdate(
+                    { id: bus.id },
+                    { $set: updateFields }
+                );
+
+                etaHistoryLog[bus.id] = etaDoc.history;
+            }
+
+            // ----------------------
+            // EMIT DATA
+            // ----------------------
+            io.emit("busData", updatedBuses);
+            io.emit("etaHistory", etaHistoryLog);
 
         } catch (err) {
             console.error("Simulation error:", err.message);
         }
 
-    }, 1000);
+    }, 3000);
 }
 
 // ----------------------
