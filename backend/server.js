@@ -52,7 +52,7 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI, {
     serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
-    maxPoolSize: 10,
+    maxPoolSize: 3,
     family: 4
 })
     .then(() => {
@@ -360,7 +360,7 @@ function startSimulation() {
             // OPTIMIZED ML CALL — only every 15 seconds
             let updatedBuses = busArray;
 
-            if (Date.now() - lastMLCall > 15000) {
+            if (Date.now() - lastMLCall > 60000) {
                 await new Promise((resolve) => {
                     predictETAs(busArray, (result) => {
                         updatedBuses = result;
@@ -418,7 +418,7 @@ function startSimulation() {
             console.error("Simulation error:", err.message);
         }
 
-    }, 3000);
+    }, 10000);
 }
 
 // ----------------------
